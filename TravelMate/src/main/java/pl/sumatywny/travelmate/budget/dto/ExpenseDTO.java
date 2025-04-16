@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+// Lombok annotations
 @Data
 @Builder
 @NoArgsConstructor
