@@ -23,7 +23,7 @@ public class ExpenseController {
 
     @PostMapping
     public ResponseEntity<Expense> addExpense(@PathVariable UUID tripId, @RequestBody Expense expense) {
-        expense.setTripId(tripId); // przypisujemy tripId z path variable
+        expense.setTripId(tripId); 
         return ResponseEntity.ok(expenseService.addExpense(expense));
     }
 
