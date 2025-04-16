@@ -3,7 +3,7 @@ package pl.sumatywny.travelmate.budget.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import pl.sumatywny.travelmate.budget.model.Expense;
+import pl.sumatywny.travelmate.budget.dto.ExpenseDTO;
 import pl.sumatywny.travelmate.budget.service.ExpenseService;
 
 import java.util.List;
@@ -17,14 +17,14 @@ public class ExpenseController {
     private final ExpenseService expenseService;
 
     @GetMapping
-    public ResponseEntity<List<Expense>> getExpenses(@PathVariable UUID tripId) {
+    public ResponseEntity<List<ExpenseDTO>> getExpenses(@PathVariable UUID tripId) {
         return ResponseEntity.ok(expenseService.getExpensesByTrip(tripId));
     }
 
     @PostMapping
-    public ResponseEntity<Expense> addExpense(@PathVariable UUID tripId, @RequestBody Expense expense) {
-        expense.setTripId(tripId); 
-        return ResponseEntity.ok(expenseService.addExpense(expense));
+    public ResponseEntity<ExpenseDTO> addExpense(@PathVariable UUID tripId, @RequestBody ExpenseDTO expenseDTO) {
+        expenseDTO.setTripId(tripId); // przypisanie tripId z URL do DTO
+        return ResponseEntity.ok(expenseService.addExpense(expenseDTO));
     }
 
     @DeleteMapping("/{expenseId}")
