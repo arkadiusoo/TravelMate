@@ -16,6 +16,6 @@ public class H2ServerConfig {
                 "-tcpPort", "9093",
                 "-ifNotExists"
         ).start();
-        System.out.println(">>> H2 TCP server started on port 9092");
+        System.out.println(">>> H2 TCP server started on port 9093");
     }
 }
