@@ -13,6 +13,7 @@ import pl.sumatywny.travelmate.budget.model.ExpenseCategory;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -48,7 +49,11 @@ public class ExpenseDTO {
     @Schema(description = "ID of the user who paid for the expense", example = "e8c40d9a-11e2-47cb-90fc-1c6d5bd6b0ae")
     private UUID payerId;
 
+    @Schema(
+        description = "Map of participants and their share in the expense. " +
+                      "The sum of all shares should equal 1.0 (100%)",
+        example = "{\"e8c4...\": 0.7, \"f3c6...\": 0.3}"
+    )
     @NotEmpty
-    @Schema(description = "List of participant IDs who shared this expense", example = "[\"e8c40d9a-11e2-47cb-90fc-1c6d5bd6b0ae\", \"f3c6d9b1-221e-4fa2-8ac0-12c4c8ad9e13\"]")
-    private List<UUID> participantIds;
+    private Map<UUID, BigDecimal> participantShares;
 }

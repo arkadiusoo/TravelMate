@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -43,12 +44,10 @@ public class Expense {
     private UUID payerId;
 
     @ElementCollection
-    @CollectionTable(
-        name = "expense_participants",
-        joinColumns = @JoinColumn(name = "expense_id")
-    )
-    @Column(name = "participant_id", nullable = false)
-    private List<UUID> participantIds;
+    @CollectionTable(name = "expense_participant_shares", joinColumns = @JoinColumn(name = "expense_id"))
+    @MapKeyColumn(name = "participant_id")
+    @Column(name = "share", nullable = false)
+    private Map<UUID, BigDecimal> participantShares;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)

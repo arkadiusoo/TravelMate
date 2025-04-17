@@ -18,7 +18,7 @@ public class ExpenseMapper {
                 .description(dto.getDescription())
                 .date(dto.getDate())
                 .payerId(dto.getPayerId())
-                .participantIds(dto.getParticipantIds())
+                .participantShares(dto.getParticipantShares())
                 .build();
     }
 
@@ -33,7 +33,7 @@ public class ExpenseMapper {
                 .description(entity.getDescription())
                 .date(entity.getDate())
                 .payerId(entity.getPayerId())
-                .participantIds(entity.getParticipantIds())
+                .participantShares(entity.getParticipantShares())
                 .build();
     }
 }
