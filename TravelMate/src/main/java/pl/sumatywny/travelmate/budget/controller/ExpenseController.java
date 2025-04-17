@@ -98,15 +98,40 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.getBudgetSummary(tripId));
     }
 
+    @Operation(
+        summary = "Update an existing expense",
+        description = "Replaces the entire expense entry with new data. All fields must be provided."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Expense updated successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid input data", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Expense not found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<ExpenseDTO> updateExpense(@PathVariable UUID id, @Valid @RequestBody ExpenseDTO dto) {
+    public ResponseEntity<ExpenseDTO> updateExpense(
+        @Parameter(description = "ID of the expense to update", required = true)
+        @PathVariable UUID id,
+        @Valid @RequestBody ExpenseDTO dto
+    ) {
         return ResponseEntity.ok(expenseService.updateExpense(id, dto));
     }
 
+    @Operation(
+        summary = "Partially update an expense",
+        description = "Updates selected fields of an existing expense. Only fields included in the request body will be modified."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Expense updated successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid or unsupported field(s) in request", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Expense not found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PatchMapping("/{expenseId}")
     public ResponseEntity<ExpenseDTO> patchExpense(
-            @PathVariable UUID expenseId,
-            @RequestBody Map<String, Object> updates
+        @Parameter(description = "ID of the expense to patch", required = true)
+        @PathVariable UUID expenseId,
+        @RequestBody Map<String, Object> updates
     ) {
         ExpenseDTO updated = expenseService.patchExpense(expenseId, updates);
         return ResponseEntity.ok(updated);
