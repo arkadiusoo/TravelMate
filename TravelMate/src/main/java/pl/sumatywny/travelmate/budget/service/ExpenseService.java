@@ -1,5 +1,6 @@
 package pl.sumatywny.travelmate.budget.service;
-
+import pl.sumatywny.travelmate.budget.model.ExpenseCategory;
+import pl.sumatywny.travelmate.config.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import pl.sumatywny.travelmate.budget.dto.BudgetSummaryDTO;
@@ -9,6 +10,7 @@ import pl.sumatywny.travelmate.budget.repository.ExpenseRepository;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -67,5 +69,45 @@ public class ExpenseService {
     }
 
     return new BudgetSummaryDTO(total, share, paid, balance);
+}
+
+    public ExpenseDTO updateExpense(UUID id, ExpenseDTO dto) {
+        Expense existing = expenseRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Expense not found"));
+
+        existing.setAmount(dto.getAmount());
+        existing.setCategory(dto.getCategory());
+        existing.setDate(dto.getDate());
+        existing.setDescription(dto.getDescription());
+        existing.setPayerId(dto.getPayerId());
+        existing.setParticipantIds(dto.getParticipantIds());
+
+        return expenseMapper.toDTO(expenseRepository.save(existing));
+    }
+
+    public ExpenseDTO patchExpense(UUID id, Map<String, Object> updates) {
+    Expense expense = expenseRepository.findById(id)
+        .orElseThrow(() -> new NotFoundException("Expense not found"));
+
+    updates.forEach((key, value) -> {
+        switch (key) {
+            case "amount" -> expense.setAmount(new BigDecimal(value.toString()));
+            case "category" -> expense.setCategory(ExpenseCategory.valueOf(value.toString()));
+            case "description" -> expense.setDescription(value.toString());
+            case "date" -> expense.setDate(LocalDate.parse(value.toString()));
+            case "payerId" -> expense.setPayerId(UUID.fromString(value.toString()));
+            case "participantIds" -> {
+                @SuppressWarnings("unchecked")
+                List<String> rawList = (List<String>) value;
+                List<UUID> participantIds = rawList.stream()
+                        .map(UUID::fromString)
+                        .toList();
+                expense.setParticipantIds(participantIds);
+            }
+        }
+    });
+
+    Expense saved = expenseRepository.save(expense);
+    return expenseMapper.toDTO(saved);
 }
 }

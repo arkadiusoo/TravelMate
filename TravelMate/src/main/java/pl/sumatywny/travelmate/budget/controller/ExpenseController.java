@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -95,5 +96,19 @@ public class ExpenseController {
         @PathVariable UUID tripId
     ) {
         return ResponseEntity.ok(expenseService.getBudgetSummary(tripId));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ExpenseDTO> updateExpense(@PathVariable UUID id, @Valid @RequestBody ExpenseDTO dto) {
+        return ResponseEntity.ok(expenseService.updateExpense(id, dto));
+    }
+
+    @PatchMapping("/{expenseId}")
+    public ResponseEntity<ExpenseDTO> patchExpense(
+            @PathVariable UUID expenseId,
+            @RequestBody Map<String, Object> updates
+    ) {
+        ExpenseDTO updated = expenseService.patchExpense(expenseId, updates);
+        return ResponseEntity.ok(updated);
     }
 }
