@@ -1,4 +1,4 @@
-package pl.sumatywny.travelmate.budget_test.service_test;
+package pl.sumatywny.travelmate.budget_test;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -120,9 +120,12 @@ public class ExpenseServiceTest {
         BudgetSummaryDTO result = expenseService.getBudgetSummary(tripId);
 
         assertThat(result.getTotalTripCost()).isEqualByComparingTo("100.00");
-        assertThat(result.getParticipantShare()).containsEntry(userId, new BigDecimal("100.00"));
-        assertThat(result.getActualPaid()).containsEntry(userId, new BigDecimal("100.00"));
-        assertThat(result.getBalance()).containsEntry(userId, BigDecimal.ZERO);
+        assertThat(result.getParticipantShare())
+                .containsEntry(userId, new BigDecimal("100")); // albo...
+        assertThat(result.getParticipantShare().get(userId)).isEqualByComparingTo("100.00");
+
+        assertThat(result.getActualPaid().get(userId)).isEqualByComparingTo("100.00");
+        assertThat(result.getBalance().get(userId)).isEqualByComparingTo("0.00");
     }
 
     @Test
@@ -136,21 +139,46 @@ public class ExpenseServiceTest {
         assertThat(updated).isEqualTo(expenseDTO);
     }
 
-    @Test
-    void shouldPatchExpenseFields() {
-        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
-        when(expenseRepository.save(any())).thenReturn(expense);
-        when(expenseMapper.toDTO(expense)).thenReturn(expenseDTO);
+@Test
+void shouldPatchExpenseFields() {
+    UUID newPayerId = UUID.randomUUID();
+    LocalDate newDate = LocalDate.of(2025, 4, 12);
+    BigDecimal newAmount = BigDecimal.valueOf(160);
 
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("description", "Updated Description");
-        updates.put("participantShares", Map.of(userId.toString(), 1.0));
+    when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
 
-        ExpenseDTO result = expenseService.patchExpense(expenseId, updates);
+    when(expenseRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThat(result.getDescription()).isEqualTo("Updated Description");
-    }
+    when(expenseMapper.toDTO(any())).thenAnswer(invocation -> {
+        Expense patched = invocation.getArgument(0);
+        return ExpenseDTO.builder()
+                .id(patched.getId())
+                .tripId(patched.getTripId())
+                .amount(patched.getAmount())
+                .category(patched.getCategory())
+                .description(patched.getDescription())
+                .date(patched.getDate())
+                .payerId(patched.getPayerId())
+                .participantShares(patched.getParticipantShares())
+                .build();
+    });
 
+    Map<String, Object> updates = new HashMap<>();
+    updates.put("description", "Updated Description");
+    updates.put("amount", newAmount);
+    updates.put("category", "FOOD");
+    updates.put("date", newDate.toString());
+    updates.put("payerId", newPayerId.toString());
+
+    ExpenseDTO result = expenseService.patchExpense(expenseId, updates);
+
+    assertThat(result).isNotNull();
+    assertThat(result.getDescription()).isEqualTo("Updated Description");
+    assertThat(result.getAmount()).isEqualByComparingTo(newAmount);
+    assertThat(result.getCategory()).isEqualTo(ExpenseCategory.FOOD);
+    assertThat(result.getDate()).isEqualTo(newDate);
+    assertThat(result.getPayerId()).isEqualTo(newPayerId);
+}
     @Test
     void shouldThrowWhenPatchingWithBadShares() {
         when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
@@ -170,5 +198,15 @@ public class ExpenseServiceTest {
 
         assertThatThrownBy(() -> expenseService.updateExpense(expenseId, expenseDTO))
                 .isInstanceOf(NotFoundException.class);
+    }
+    @Test
+    void shouldThrowWhenExpenseToPatchNotFound() {
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.empty());
+
+        Map<String, Object> updates = Map.of("description", "New Desc");
+
+        assertThatThrownBy(() -> expenseService.patchExpense(expenseId, updates))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Expense not found");
     }
 }
