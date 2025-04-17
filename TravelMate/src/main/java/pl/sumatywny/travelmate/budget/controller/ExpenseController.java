@@ -1,5 +1,6 @@
 package pl.sumatywny.travelmate.budget.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,9 +29,11 @@ public class ExpenseController {
 
     @Operation(summary = "Add a new expense to a trip")
     @PostMapping
-    public ResponseEntity<ExpenseDTO> addExpense(@PathVariable UUID tripId, @RequestBody ExpenseDTO expenseDTO) {
-        expenseDTO.setTripId(tripId);
-        return ResponseEntity.ok(expenseService.addExpense(expenseDTO));
+    public ResponseEntity<ExpenseDTO> addExpense(
+            @PathVariable UUID tripId,
+            @Valid @RequestBody ExpenseDTO expenseDTO) {
+            expenseDTO.setTripId(tripId);
+            return ResponseEntity.ok(expenseService.addExpense(expenseDTO));
     }
 
     @Operation(summary = "Delete an expense")

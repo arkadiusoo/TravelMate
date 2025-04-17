@@ -1,5 +1,8 @@
 package pl.sumatywny.travelmate.budget.dto;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,10 +22,21 @@ import java.util.UUID;
 public class ExpenseDTO {
     private UUID id;
     private UUID tripId;
+
+    @NotNull
+    @DecimalMin("0.01")
     private BigDecimal amount;
+
+    @NotNull
     private ExpenseCategory category;
     private String description;
+
+    @NotNull
     private LocalDate date;
+
+    @NotNull
     private UUID payerId;
+
+    @NotEmpty
     private List<UUID> participantIds;
 }
