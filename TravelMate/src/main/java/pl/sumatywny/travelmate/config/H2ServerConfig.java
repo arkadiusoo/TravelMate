@@ -13,7 +13,7 @@ public class H2ServerConfig {
     public void startH2TCPServer() throws SQLException {
         Server.createTcpServer(
                 "-tcpAllowOthers",
-                "-tcpPort", "9092",
+                "-tcpPort", "9093",
                 "-ifNotExists"
         ).start();
         System.out.println(">>> H2 TCP server started on port 9092");
