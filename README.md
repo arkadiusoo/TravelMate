@@ -2,7 +2,7 @@
 
 **TravelMate** is a Spring Boot-based backend application designed to manage trip expenses, split costs among participants, and generate financial summaries for each trip. It provides RESTful endpoints for managing trips, expenses, and participants.
 
-## 📦 Features
+## Features
 - ### `budget-service`:
   - Add, update, delete, and retrieve expenses for a trip
   - Calculate trip budget summaries
@@ -20,14 +20,9 @@
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
 - Java 21
 - Maven
-
-### Running the Application
-
-```bash
-mvn spring-boot:run
