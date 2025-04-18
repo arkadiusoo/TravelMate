@@ -3,6 +3,7 @@ package pl.sumatywny.travelmate.points.model;
 import com.google.maps.model.OpeningHours;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.net.URL;
 
@@ -59,6 +60,16 @@ public class Point {
     @Getter
     @Column(name = "hours")
     private OpeningHours hours;
+
+    @Getter
+    @Setter
+    @Column(name = "tripId")
+    private int tripId;
+
+    @Getter
+    @Setter
+    @Column(name = "segmentId")
+    private int segmentId;
 
     public Point(String placeId, float rating, PointType type, String name, String city, double lat, double lon, String fullAddress, String phone, URL website, OpeningHours hours) {
         this.placeId = placeId;
