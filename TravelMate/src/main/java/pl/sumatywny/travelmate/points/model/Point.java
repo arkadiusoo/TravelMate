@@ -15,7 +15,7 @@ public class Point {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true)
-    private int id;
+    private long id;
 
     @Getter
     @Column(name = "placeId", nullable = false)
@@ -64,12 +64,12 @@ public class Point {
     @Getter
     @Setter
     @Column(name = "tripId")
-    private int tripId;
+    private long tripId;
 
     @Getter
     @Setter
     @Column(name = "segmentId")
-    private int segmentId;
+    private long segmentId;
 
     public Point(String placeId, float rating, PointType type, String name, String city, double lat, double lon, String fullAddress, String phone, URL website, OpeningHours hours) {
         this.placeId = placeId;

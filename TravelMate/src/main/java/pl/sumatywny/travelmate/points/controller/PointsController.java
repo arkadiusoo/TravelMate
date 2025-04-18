@@ -36,7 +36,7 @@ public class PointsController {
     @GetMapping("/points/search")
     public ResponseEntity<List<Point>> searchPlaces(
             @Parameter(description = "Trip Id", required = true)
-            @PathVariable String tripId,
+            @PathVariable long tripId,
             @Valid
             @RequestBody SearchDto search
     ) {
@@ -56,7 +56,7 @@ public class PointsController {
     @GetMapping("/points")
     public ResponseEntity<List<Point>> getPointsForTrip(
             @Parameter(description = "Trip ID", required = true)
-            @PathVariable int tripId
+            @PathVariable long tripId
     ) {
         List<Point> points = pointsService.getPointsByTripId(tripId);
         return ResponseEntity.ok(points);
@@ -74,9 +74,9 @@ public class PointsController {
     @PostMapping("/segments/{segmentId}/points")
     public ResponseEntity<Point> addPointToTrip(
             @Parameter(description = "Trip ID", required = true)
-            @PathVariable int tripId,
+            @PathVariable long tripId,
             @Parameter(description = "Segment ID", required = true)
-            @PathVariable int segmentId,
+            @PathVariable long segmentId,
             @Valid @RequestBody Point point
     ) {
         Point saved = pointsService.addPointToTrip(tripId, segmentId, point);

@@ -10,6 +10,6 @@ import java.util.List;
 
 public interface PointRepository extends JpaRepository<Point, Integer> {
     @Query("select p from Point p where p.tripId = :tripId")
-    List<Point> readPointsByTripId(@Param("tripId") int tripId);
+    List<Point> readPointsByTripId(@Param("tripId") long tripId);
 
 }

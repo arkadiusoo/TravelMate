@@ -31,13 +31,13 @@ public class PointsService {
         return points;
     }
 
-    public Point addPointToTrip(int tripId, int segmentId, Point point) {
+    public Point addPointToTrip(long tripId, long segmentId, Point point) {
         point.setTripId(tripId);
         point.setSegmentId(segmentId);
         return pointRepository.save(point);
     }
 
-    public List<Point> getPointsByTripId(int tripId) {
+    public List<Point> getPointsByTripId(long tripId) {
         return pointRepository.readPointsByTripId(tripId);
     }
 }
