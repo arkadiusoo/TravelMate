@@ -1,6 +1,9 @@
-package pl.sumatywny.travelmate.trip;
+package pl.sumatywny.travelmate.trip.controller;
 
 import org.springframework.web.bind.annotation.*;
+import pl.sumatywny.travelmate.trip.model.Point;
+import pl.sumatywny.travelmate.trip.service.PointService;
+
 import java.util.List;
 
 @RestController

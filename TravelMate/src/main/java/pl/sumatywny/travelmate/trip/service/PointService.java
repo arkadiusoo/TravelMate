@@ -1,7 +1,11 @@
-package pl.sumatywny.travelmate.trip;
+package pl.sumatywny.travelmate.trip.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pl.sumatywny.travelmate.trip.repository.PointRepository;
+import pl.sumatywny.travelmate.trip.model.Point;
+import pl.sumatywny.travelmate.trip.model.Trip;
+import pl.sumatywny.travelmate.trip.repository.TripRepository;
 
 import java.util.List;
 

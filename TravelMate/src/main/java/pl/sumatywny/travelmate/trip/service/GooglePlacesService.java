@@ -1,4 +1,4 @@
-package pl.sumatywny.travelmate.trip;
+package pl.sumatywny.travelmate.trip.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,7 +14,7 @@ public class GooglePlacesService {
 
     private final WebClient webClient = WebClient.create("https://maps.googleapis.com/maps/api");
 
-    public String autocomplete(String query) {
+    public String search(String query) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/place/autocomplete/json")

@@ -1,4 +1,4 @@
-package pl.sumatywny.travelmate.trip;
+package pl.sumatywny.travelmate.trip.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;

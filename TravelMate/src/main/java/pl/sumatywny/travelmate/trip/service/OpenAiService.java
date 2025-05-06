@@ -1,4 +1,4 @@
-package pl.sumatywny.travelmate.trip;
+package pl.sumatywny.travelmate.trip.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import pl.sumatywny.travelmate.trip.dto.PlaceVisitDto;
+
 import java.util.*;
 
 @Service
@@ -134,11 +136,9 @@ NIE CHCĘ NIC INNEGO W ODPOWIEDZI.
                 result.add(dto);
 
             } catch (Exception e) {
-                e.printStackTrace(); // lub log
+                e.printStackTrace();
             }
         }
         return result;
     }
-
-
 }

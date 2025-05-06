@@ -1,8 +1,9 @@
-package pl.sumatywny.travelmate.trip;
+package pl.sumatywny.travelmate.trip.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDate;
 
 @Entity

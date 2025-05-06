@@ -1,6 +1,7 @@
-package pl.sumatywny.travelmate.trip;
+package pl.sumatywny.travelmate.trip.controller;
 
 import org.springframework.web.bind.annotation.*;
+import pl.sumatywny.travelmate.trip.service.GooglePlacesService;
 
 @RestController
 @RequestMapping("/api/places")
@@ -12,9 +13,9 @@ public class GooglePlacesController {
         this.googlePlacesService = googlePlacesService;
     }
 
-    @GetMapping("/autocomplete")
-    public String autocomplete(@RequestParam String q) {
-        return googlePlacesService.autocomplete(q);
+    @GetMapping("/search")
+    public String search(@RequestParam String q) {
+        return googlePlacesService.search(q);
     }
 
     @GetMapping("/details")
