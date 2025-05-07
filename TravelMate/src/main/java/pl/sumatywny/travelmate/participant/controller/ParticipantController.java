@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pl.sumatywny.travelmate.participant.dto.InvitationResponseDTO;
 import pl.sumatywny.travelmate.participant.dto.ParticipantDTO;
 import pl.sumatywny.travelmate.participant.service.ParticipantService;
 
@@ -23,6 +24,29 @@ import java.util.UUID;
 public class ParticipantController {
 
     private final ParticipantService participantService;
+
+
+    @GetMapping("/test")
+    public ResponseEntity<String> testEndpoint() {
+        return ResponseEntity.ok("API is working");
+    }
+
+    /**
+     * Pobiera identyfikator aktualnie zalogowanego użytkownika.
+     * W prawdziwej aplikacji byłby to kod integrujący się z systemem uwierzytelniania.
+     *
+     * @return ID bieżącego użytkownika
+     */
+    private UUID getCurrentUserId() {
+        // W rzeczywistej aplikacji pobrałbyś to z kontekstu bezpieczeństwa
+        // Na przykład, z Spring Security:
+        // Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        // return UUID.fromString(userDetails.getUsername());
+
+        // Na razie zwracamy placeholder UUID do testów
+        return UUID.fromString("00000000-0000-0000-0000-000000000000");
+    }
 
     @Operation(
             summary = "Get all participants for a trip",
@@ -58,7 +82,7 @@ public class ParticipantController {
             @Valid @RequestBody ParticipantDTO participantDTO
     ) {
         participantDTO.setTripId(tripId);
-        return ResponseEntity.ok(participantService.addParticipant(participantDTO));
+        return ResponseEntity.ok(participantService.addParticipant(participantDTO, getCurrentUserId()));
     }
 
     @Operation(
@@ -79,7 +103,7 @@ public class ParticipantController {
             @PathVariable UUID participantId,
             @Valid @RequestBody ParticipantDTO updates
     ) {
-        return ResponseEntity.ok(participantService.updateParticipantRole(participantId, updates));
+        return ResponseEntity.ok(participantService.updateParticipantRole(participantId, updates, getCurrentUserId()));
     }
 
     @Operation(
@@ -98,7 +122,30 @@ public class ParticipantController {
             @Parameter(description = "ID of the participant to remove", required = true)
             @PathVariable UUID participantId
     ) {
-        participantService.removeParticipant(participantId);
+        participantService.removeParticipant(participantId, getCurrentUserId());
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Respond to a trip invitation",
+            description = "Allows a user to accept or decline an invitation to a trip"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Invitation response processed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Participant not found"),
+            @ApiResponse(responseCode = "409", description = "Invitation has already been processed", content = @Content),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @PatchMapping("/{participantId}/respond")
+    public ResponseEntity<ParticipantDTO> respondToInvitation(
+            @Parameter(description = "ID of the trip", required = true)
+            @PathVariable UUID tripId,
+            @Parameter(description = "ID of the invitation to respond to", required = true)
+            @PathVariable UUID participantId,
+            @Valid @RequestBody InvitationResponseDTO response
+    ) {
+        return ResponseEntity.ok(participantService.respondToInvitation(
+                participantId, response.getStatus(), getCurrentUserId()));
     }
 }
