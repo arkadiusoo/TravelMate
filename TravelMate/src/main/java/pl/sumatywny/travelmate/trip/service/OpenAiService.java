@@ -34,15 +34,15 @@ Ważne:
 
 [
   {
-    "Data odwiedzin": "08.05.2025",
+    "Data odwiedzin": "2025-05-08",
     "Nazwa miejsca": "Pałac Prezydencki w Warszawie"
   },
   {
-    "Data odwiedzin": "08.05.2025",
+    "Data odwiedzin": "2025-05-08",
     "Nazwa miejsca": "Zamek Królewski w Warszawie"
   },
   {
-    "Data odwiedzin": "09.05.2025",
+    "Data odwiedzin": "2025-05-09",
     "Nazwa miejsca": "Stadion Narodowy w Warszawie"
   }
 ]

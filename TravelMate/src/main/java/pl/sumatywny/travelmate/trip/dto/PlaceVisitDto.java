@@ -12,4 +12,13 @@ public class PlaceVisitDto {
     private double lng;
     private String date;
 
+    public PlaceVisitDto(String name, String address, double lat, double lng, String date) {
+        this.name = name;
+        this.address = address;
+        this.lat = lat;
+        this.lng = lng;
+        this.date = date;
+    }
+
+    public PlaceVisitDto() {}
 }
