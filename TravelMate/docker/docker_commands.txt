@@ -1,0 +1,2 @@
+docker build -t sumatywpostgres .
+docker run --name test -p 5431:5432 -v newnewVolume:/var/lib/postgresql/data sumatywpostgres
