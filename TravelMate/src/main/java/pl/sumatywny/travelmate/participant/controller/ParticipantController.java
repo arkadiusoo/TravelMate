@@ -25,12 +25,6 @@ public class ParticipantController {
 
     private final ParticipantService participantService;
 
-
-    @GetMapping("/test")
-    public ResponseEntity<String> testEndpoint() {
-        return ResponseEntity.ok("API is working");
-    }
-
     /**
      * Pobiera identyfikator aktualnie zalogowanego użytkownika.
      * W prawdziwej aplikacji byłby to kod integrujący się z systemem uwierzytelniania.

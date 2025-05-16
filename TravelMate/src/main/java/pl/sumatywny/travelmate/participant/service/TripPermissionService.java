@@ -27,6 +27,7 @@ public class TripPermissionService {
                 .orElse(null);
     }
 
+
     /**
      * Sprawdza czy użytkownik ma określoną rolę lub wyższą
      *
@@ -36,34 +37,47 @@ public class TripPermissionService {
      * @return true jeśli użytkownik ma wymaganą rolę lub wyższą
      */
     public boolean hasRoleOrHigher(UUID tripId, UUID userId, ParticipantRole minimumRole) {
-        return true;
+        ParticipantRole userRole = getUserRole(tripId, userId);
+
+        // Jeśli użytkownik nie jest uczestnikiem wycieczki
+        if (userRole == null) {
+            return false;
+        }
+
+        // Sprawdzenie hierarchii ról (ORGANIZER > MEMBER > GUEST)
+        // Im niższy indeks w enum, tym wyższa rola
+        return userRole.ordinal() <= minimumRole.ordinal();
     }
 
     /**
      * Sprawdza czy użytkownik może edytować informacje o wycieczce
      */
     public boolean canEditTrip(UUID tripId, UUID userId) {
-        return true;
+        // Tylko ORGANIZER może edytować informacje o wycieczce
+        return hasRoleOrHigher(tripId, userId, ParticipantRole.ORGANIZER);
     }
 
     /**
      * Sprawdza czy użytkownik może zarządzać budżetem
      */
     public boolean canManageBudget(UUID tripId, UUID userId) {
-        return true;
+        // ORGANIZER może zarządzać budżetem
+        return hasRoleOrHigher(tripId, userId, ParticipantRole.ORGANIZER);
     }
 
     /**
      * Sprawdza czy użytkownik może dodawać wydatki
      */
     public boolean canAddExpenses(UUID tripId, UUID userId) {
-        return true;
+        // ORGANIZER i MEMBER mogą dodawać wydatki
+        return hasRoleOrHigher(tripId, userId, ParticipantRole.MEMBER);
     }
-
     /**
      * Sprawdza czy użytkownik może zapraszać uczestników
      */
     public boolean canInviteParticipants(UUID tripId, UUID userId) {
+        // ORGANIZER może zapraszać uczestników
+        //return hasRoleOrHigher(tripId, userId, ParticipantRole.ORGANIZER);
         return true;
     }
 
@@ -77,7 +91,27 @@ public class TripPermissionService {
      */
     public boolean canManageParticipant(UUID tripId, UUID userId, UUID participantId) {
 
-    return true;
+        if (participantRepository.findById(participantId).isEmpty()) {
+            return false; // Can't manage a non-existent participant
+        }
+
+        ParticipantRole userRole = getUserRole(tripId, userId);
+
+        // Jeśli użytkownik nie jest uczestnikiem
+        if (userRole == null) {
+            return false;
+        }
+
+        // ORGANIZER może zarządzać wszystkimi uczestnikami
+        if (userRole == ParticipantRole.ORGANIZER) {
+            return true;
+        }
+
+        // Pozostali użytkownicy mogą zarządzać tylko sobą
+        // Sprawdzamy, czy participantId odpowiada rekordowi z userId użytkownika
+        return participantRepository.findById(participantId)
+                .map(participant -> participant.getUserId().equals(userId))
+                .orElse(false);
     }
 
 
@@ -85,6 +119,20 @@ public class TripPermissionService {
      * Sprawdza czy użytkownik może przydzielać określoną rolę
      */
     public boolean canAssignRole(UUID tripId, UUID userId, ParticipantRole roleToAssign) {
+        ParticipantRole userRole = getUserRole(tripId, userId);
+
+        // Jeśli użytkownik nie jest uczestnikiem
+        if (userRole == null) {
+            return false;
+        }
+
+        // Tylko ORGANIZER może przydzielać role
+        if (userRole != ParticipantRole.ORGANIZER) {
+            return false;
+        }
+
+        // ORGANIZER może przydzielać wszystkie role
         return true;
+
     }
 }
