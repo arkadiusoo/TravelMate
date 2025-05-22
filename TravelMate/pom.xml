@@ -81,12 +81,7 @@
         <classifier>osx-aarch_64</classifier>
     </dependency>
 
-    <!-- In-Memory DB for Tests -->
-    <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <version>2.2.224</version>
-    </dependency>
+
 
     <!-- Testing -->
     <dependency>
