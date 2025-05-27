@@ -8,11 +8,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import pl.sumatywny.travelmate.participant.dto.InvitationResponseDTO;
 import pl.sumatywny.travelmate.participant.dto.ParticipantDTO;
 import pl.sumatywny.travelmate.participant.service.ParticipantService;
+import pl.sumatywny.travelmate.security.model.User;
+import pl.sumatywny.travelmate.security.service.AuthService;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,28 +29,15 @@ import java.util.UUID;
 public class ParticipantController {
 
     private final ParticipantService participantService;
-
-
-    @GetMapping("/test")
-    public ResponseEntity<String> testEndpoint() {
-        return ResponseEntity.ok("API is working");
-    }
-
+    @Autowired
+    private AuthService authService;
     /**
      * Pobiera identyfikator aktualnie zalogowanego użytkownika.
-     * W prawdziwej aplikacji byłby to kod integrujący się z systemem uwierzytelniania.
      *
      * @return ID bieżącego użytkownika
      */
     private UUID getCurrentUserId() {
-        // W rzeczywistej aplikacji pobrałbyś to z kontekstu bezpieczeństwa
-        // Na przykład, z Spring Security:
-        // Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        // return UUID.fromString(userDetails.getUsername());
-
-        // Na razie zwracamy placeholder UUID do testów
-        return UUID.fromString("00000000-0000-0000-0000-000000000000");
+        return authService.getCurrentUserId();
     }
 
     @Operation(
