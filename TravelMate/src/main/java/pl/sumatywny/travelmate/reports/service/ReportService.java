@@ -3,7 +3,6 @@ package pl.sumatywny.travelmate.reports.service;
 import org.springframework.stereotype.Service;
 import pl.sumatywny.travelmate.participant.model.Participant;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
-import pl.sumatywny.travelmate.participant.service.ParticipantService;
 import pl.sumatywny.travelmate.reports.dto.NoteDTO;
 import pl.sumatywny.travelmate.reports.entity.Note;
 import pl.sumatywny.travelmate.reports.repository.NoteRepository;
@@ -22,7 +21,8 @@ public class ReportService {
     //ParticipantService participantService;
     ParticipantRepository participantRepository;//temporary
 
-    public List<NoteDTO> getTripNotes(Trip trip) {
+    public List<NoteDTO> getTripNotes(Long tripId) {
+        Trip trip = tripService.findById(tripId);
         List<Note> notes = noteRepository.getNotesByTrip(trip).stream().sorted(Comparator.comparing(Note::getDate)).toList();
         List<NoteDTO> noteDTOs = new LinkedList<>();
         for (Note note : notes) {
