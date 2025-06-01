@@ -193,4 +193,25 @@ public class ParticipantService {
         // Zwrócenie zaktualizowanego DTO
         return participantMapper.toDTO(updated);
     }
+
+    /**
+     * Pobiera szczegóły uczestnika po ID.
+     *
+     * @param participantId ID uczestnika
+     * @param currentUserId ID użytkownika wykonującego operację
+     * @return Szczegóły uczestnika jako DTO
+     * @throws NotFoundException Jeśli uczestnik nie istnieje
+     */
+    public ParticipantDTO getParticipantById(UUID participantId, UUID currentUserId) {
+        Participant participant = participantRepository.findById(participantId)
+                .orElseThrow(() -> new NotFoundException("Nie znaleziono uczestnika"));
+
+        // Optional: Add permission check if needed
+        // if (!permissionService.canViewParticipant(participant.getTripId(), currentUserId)) {
+        //     throw new IllegalStateException("Nie masz uprawnień do przeglądania tego uczestnika");
+        // }
+
+        return participantMapper.toDTO(participant);
+    }
+
 }

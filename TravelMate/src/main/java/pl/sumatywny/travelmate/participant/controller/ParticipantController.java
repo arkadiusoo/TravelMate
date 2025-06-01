@@ -142,4 +142,24 @@ public class ParticipantController {
         return ResponseEntity.ok(participantService.respondToInvitation(
                 participantId, response.getStatus(), getCurrentUserId()));
     }
+
+    @Operation(
+            summary = "Get a specific participant by ID",
+            description = "Returns details of a specific participant in a trip"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Participant found successfully"),
+            @ApiResponse(responseCode = "404", description = "Participant not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    @GetMapping("/{participantId}")
+    public ResponseEntity<ParticipantDTO> getParticipantById(
+            @Parameter(description = "ID of the trip", required = true)
+            @PathVariable UUID tripId,
+            @Parameter(description = "ID of the participant to retrieve", required = true)
+            @PathVariable UUID participantId
+    ) {
+        return ResponseEntity.ok(participantService.getParticipantById(participantId, getCurrentUserId()));
+    }
+
 }
