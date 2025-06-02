@@ -1,5 +1,6 @@
 package pl.sumatywny.travelmate.reports.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pl.sumatywny.travelmate.participant.model.Participant;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
@@ -20,6 +21,16 @@ public class ReportService {
     TripService tripService;
     //ParticipantService participantService;
     ParticipantRepository participantRepository;//temporary
+
+    @Autowired
+    public ReportService(NoteRepository noteRepository, TripService tripService, ParticipantRepository participantRepository) {
+        this.noteRepository = noteRepository;
+        this.tripService = tripService;
+        this.participantRepository = participantRepository;
+    }
+
+
+
 
     public List<NoteDTO> getTripNotes(Long tripId) {
         Trip trip = tripService.findById(tripId);
