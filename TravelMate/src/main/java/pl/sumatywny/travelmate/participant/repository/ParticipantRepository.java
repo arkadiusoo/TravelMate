@@ -49,4 +49,6 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * @return List of matching participant records
      */
     List<Participant> findByUserIdAndStatus(UUID userId, InvitationStatus status);
+
+    Participant getParticipantByEmail(String author);
 }
