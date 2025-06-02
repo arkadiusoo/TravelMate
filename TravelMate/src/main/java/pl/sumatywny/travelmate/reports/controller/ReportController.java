@@ -1,5 +1,6 @@
 package pl.sumatywny.travelmate.reports.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pl.sumatywny.travelmate.reports.dto.NoteDTO;
@@ -10,6 +11,10 @@ import java.util.List;
 @RestController
 public class ReportController {
     ReportService reportService;
+    @Autowired
+    public ReportController(ReportService reportService) {
+        this.reportService = reportService;
+    }
 
     @GetMapping(value = "/notes/trip/{tripId}")
     public ResponseEntity<List<NoteDTO>> getTripNotes(@PathVariable("tripId") Long tripId) {

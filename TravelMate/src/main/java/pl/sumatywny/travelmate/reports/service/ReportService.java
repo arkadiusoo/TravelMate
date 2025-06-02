@@ -19,7 +19,6 @@ import java.util.List;
 public class ReportService {
     NoteRepository noteRepository;
     TripService tripService;
-    //ParticipantService participantService;
     ParticipantRepository participantRepository;//temporary
 
     @Autowired
@@ -28,9 +27,6 @@ public class ReportService {
         this.tripService = tripService;
         this.participantRepository = participantRepository;
     }
-
-
-
 
     public List<NoteDTO> getTripNotes(Long tripId) {
         Trip trip = tripService.findById(tripId);
