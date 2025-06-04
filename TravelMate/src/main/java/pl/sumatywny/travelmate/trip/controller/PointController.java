@@ -11,6 +11,7 @@ import pl.sumatywny.travelmate.trip.model.Point;
 import pl.sumatywny.travelmate.trip.service.PointService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/trips/{tripId}/points")
@@ -36,10 +37,9 @@ public class PointController {
             }
     )
     @GetMapping
-    public List<Point> getAll(@PathVariable Long tripId) {
+    public List<Point> getAll(@PathVariable UUID tripId) {  // Changed Long to UUID
         return pointService.findByTripId(tripId);
     }
-
     @Operation(
             summary = "Create a new point in a trip",
             description = "Adds a new point to the specified trip.",
@@ -53,7 +53,7 @@ public class PointController {
             }
     )
     @PostMapping
-    public Point create(@PathVariable Long tripId, @RequestBody Point point) {
+    public Point create(@PathVariable UUID tripId, @RequestBody Point point) {  // Changed Long to UUID
         return pointService.create(tripId, point);
     }
 
@@ -71,10 +71,9 @@ public class PointController {
             }
     )
     @GetMapping("/{id}")
-    public Point getOne(@PathVariable Long tripId, @PathVariable Long id) {
+    public Point getOne(@PathVariable UUID tripId, @PathVariable Long id) {  // Changed Long to UUID for tripId
         return pointService.findById(tripId, id);
     }
-
     @Operation(
             summary = "Update a point in a trip",
             description = "Updates the details of a specific point in the given trip.",
@@ -89,9 +88,10 @@ public class PointController {
             }
     )
     @PutMapping("/{id}")
-    public Point update(@PathVariable Long tripId, @PathVariable Long id, @RequestBody Point point) {
+    public Point update(@PathVariable UUID tripId, @PathVariable Long id, @RequestBody Point point) {  // Changed Long to UUID for tripId
         return pointService.update(tripId, id, point);
     }
+
 
     @Operation(
             summary = "Delete a point from a trip",
@@ -106,7 +106,7 @@ public class PointController {
             }
     )
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long tripId, @PathVariable Long id) {
+    public void delete(@PathVariable UUID tripId, @PathVariable Long id) {  // Changed Long to UUID for tripId
         pointService.delete(tripId, id);
     }
 }

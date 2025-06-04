@@ -6,11 +6,15 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import pl.sumatywny.travelmate.trip.model.Trip;
 import pl.sumatywny.travelmate.trip.service.TripService;
+import pl.sumatywny.travelmate.security.service.UserService;  // Add this import
+import pl.sumatywny.travelmate.security.model.User;           // Add this import
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/trips")
@@ -18,9 +22,11 @@ import java.util.List;
 public class TripController {
 
     private final TripService tripService;
+    private final UserService userService;
 
-    public TripController(TripService tripService) {
+    public TripController(TripService tripService, UserService userService) {  // Add UserService
         this.tripService = tripService;
+        this.userService = userService;
     }
 
     @Operation(
@@ -47,8 +53,16 @@ public class TripController {
             }
     )
     @PostMapping
-    public Trip create(@RequestBody Trip trip) {
-        return tripService.create(trip);
+    public Trip create(@RequestBody Trip trip, Authentication authentication) {
+        UUID currentUserId = extractUserIdFromAuthentication(authentication);
+        return tripService.create(trip, currentUserId);
+    }
+
+    private UUID extractUserIdFromAuthentication(Authentication authentication) {
+        String email = authentication.getName();  // This gets the email from JWT
+        User user = userService.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        return user.getId();  // Return the actual user UUID
     }
 
     @Operation(
@@ -64,10 +78,9 @@ public class TripController {
             }
     )
     @GetMapping("/{id}")
-    public Trip getOne(@PathVariable Long id) {
+    public Trip getOne(@PathVariable UUID id) {  // Changed Long to UUID
         return tripService.findById(id);
     }
-
     @Operation(
             summary = "Update a trip",
             description = "Updates the details of an existing trip.",
@@ -81,10 +94,9 @@ public class TripController {
             }
     )
     @PutMapping("/{id}")
-    public Trip update(@PathVariable Long id, @RequestBody Trip trip) {
+    public Trip update(@PathVariable UUID id, @RequestBody Trip trip) {  // Changed Long to UUID
         return tripService.update(id, trip);
     }
-
     @Operation(
             summary = "Delete a trip",
             description = "Deletes a specific trip by its ID.",
@@ -97,7 +109,7 @@ public class TripController {
             }
     )
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable UUID id) {  // Changed Long to UUID
         tripService.delete(id);
     }
 }
