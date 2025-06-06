@@ -16,18 +16,18 @@ INSERT INTO participants (
 ) VALUES
   -- Uczestnicy wycieczki "Wycieczka w Tatry"
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '10000000-0000-0000-0000-000000000001',
-   '11111111-1111-1111-1111-111111111111', 'alice@example.com', 'Leader',   'pending',
+   '11111111-1111-1111-1111-111111111111', 'alice@example.com', 'ORGANIZER',   'ACCEPTED',
    '2025-05-01 10:00:00', '2025-05-01 10:00:00'),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '10000000-0000-0000-0000-000000000002',
-   '11111111-1111-1111-1111-111111111111', 'bob@example.com',   'Member',   'pending',
+   '11111111-1111-1111-1111-111111111111', 'bob@example.com',   'MEMBER',   'ACCEPTED',
    '2025-05-01 10:00:00', '2025-05-01 10:00:00'),
 
   -- Uczestnicy wycieczki "Wakacje nad morzem"
   ('cccccccc-cccc-cccc-cccc-cccccccccccc', '10000000-0000-0000-0000-000000000003',
-   '22222222-2222-2222-2222-222222222222', 'carol@example.com', 'Leader',   'pending',
+   '22222222-2222-2222-2222-222222222222', 'carol@example.com', 'ORGANIZER',   'ACCEPTED',
    '2025-05-10 14:30:00', '2025-05-10 14:30:00'),
   ('dddddddd-dddd-dddd-dddd-dddddddddddd', '10000000-0000-0000-0000-000000000004',
-   '22222222-2222-2222-2222-222222222222', 'dave@example.com',  'Member',   'pending',
+   '22222222-2222-2222-2222-222222222222', 'dave@example.com',  'MEMBER',   'ACCEPTED',
    '2025-05-10 14:30:00', '2025-05-10 14:30:00');
 
 -- ==========================================
@@ -59,23 +59,23 @@ INSERT INTO expenses (
   -- Wydatki dla "Wycieczka w Tatry"
   ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111',
    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 200.00, '2025-06-02',
-   'Nocleg w schronisku',       'Accommodation',
+   'Nocleg w schronisku',       'ACCOMMODATION',
    '2025-06-02 12:00:00', '2025-06-02 12:00:00'),
 
   ('44444444-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111',
    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 100.00, '2025-06-03',
-   'Wynajem sprzętu górskiego', 'Equipment',
+   'Wynajem sprzętu górskiego', 'OTHER',
    '2025-06-03 15:30:00', '2025-06-03 15:30:00'),
 
   -- Wydatki dla "Wakacje nad morzem"
   ('55555555-5555-5555-5555-555555555555', '22222222-2222-2222-2222-222222222222',
    'cccccccc-cccc-cccc-cccc-cccccccccccc', 300.00, '2025-07-11',
-   'Apartament nad morzem',      'Accommodation',
+   'Apartament nad morzem',      'ACCOMMODATION',
    '2025-07-11 11:00:00', '2025-07-11 11:00:00'),
 
   ('66666666-6666-6666-6666-666666666666', '22222222-2222-2222-2222-222222222222',
    'dddddddd-dddd-dddd-dddd-dddddddddddd',  80.00, '2025-07-13',
-   'Rejs statkiem',              'Activity',
+   'Rejs statkiem',              'ACTIVITIES',
    '2025-07-13 17:45:00', '2025-07-13 17:45:00');
 
 -- ==========================================
