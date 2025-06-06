@@ -68,4 +68,5 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * @return True if the email is already a participant in the trip
      */
     boolean existsByTripIdAndEmail(UUID tripId, String email);
+    Participant getParticipantByEmail(String email);
 }
