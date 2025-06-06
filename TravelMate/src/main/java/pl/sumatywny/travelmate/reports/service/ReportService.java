@@ -14,6 +14,7 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ReportService {
@@ -28,7 +29,7 @@ public class ReportService {
         this.participantRepository = participantRepository;
     }
 
-    public List<NoteDTO> getTripNotes(Long tripId) {
+    public List<NoteDTO> getTripNotes(UUID tripId) {
         Trip trip = tripService.findById(tripId);
         List<Note> notes = noteRepository.getNotesByTrip(trip).stream().sorted(Comparator.comparing(Note::getDate)).toList();
         List<NoteDTO> noteDTOs = new LinkedList<>();
@@ -44,7 +45,7 @@ public class ReportService {
         return noteDTOs;
     }
 
-    public void addNote(String author, String content, Long tripId) {
+    public void addNote(String author, String content, UUID tripId) {
         Trip trip = tripService.findById(tripId);
         Participant participant = participantRepository.getParticipantByEmail(author); // temporary
         LocalDate noteDate = LocalDate.now();

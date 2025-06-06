@@ -1,6 +1,7 @@
 package pl.sumatywny.travelmate.participant.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 import pl.sumatywny.travelmate.participant.model.InvitationStatus;
 import pl.sumatywny.travelmate.participant.model.Participant;
 
