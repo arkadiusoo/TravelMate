@@ -49,4 +49,14 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * @return List of matching participant records
      */
     List<Participant> findByUserIdAndStatus(UUID userId, InvitationStatus status);
+    /**
+     * Finds a specific participant by both trip ID and email.
+     */
+    Optional<Participant> findByTripIdAndEmail(UUID tripId, String email);
+
+    /**
+     * Checks if an email is already a participant in a specific trip.
+     */
+    boolean existsByTripIdAndEmail(UUID tripId, String email);
+
 }

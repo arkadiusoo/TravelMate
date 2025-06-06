@@ -15,6 +15,7 @@ import java.util.UUID;
 /**
  * Data Transfer Object for Participant entity.
  * Used for communication between client and server.
+ * Supports inviting existing registered users by either userId or email.
  */
 @Data
 @Builder
@@ -23,24 +24,46 @@ import java.util.UUID;
 @Schema(description = "Data transfer object representing a trip participant")
 public class ParticipantDTO {
 
-    @Schema(description = "Unique identifier of the participant", example = "f1a8e0a2-345b-4c99-99ab-bc3f2b97cd1f", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(
+            description = "Unique identifier of the participant record",
+            example = "f1a8e0a2-345b-4c99-99ab-bc3f2b97cd1f",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
     private UUID id;
 
-    @NotNull
-    @Schema(description = "ID of the trip this participant is associated with", example = "b7c308ff-4906-4c63-bc8a-27a3ac0aa8f3")
+    @Schema(
+            description = "ID of the trip this participant is associated with",
+            example = "b7c308ff-4906-4c63-bc8a-27a3ac0aa8f3",
+            accessMode = Schema.AccessMode.READ_ONLY  // Since it's set by controller
+    )
     private UUID tripId;
 
-    @Schema(description = "ID of the user who is the participant", example = "e8c40d9a-11e2-47cb-90fc-1c6d5bd6b0ae")
+    @Schema(
+            description = "ID of the registered user to invite as participant. Either userId or email must be provided when creating a participant.",
+            example = "e8c40d9a-11e2-47cb-90fc-1c6d5bd6b0ae"
+    )
     private UUID userId;
 
     @Email
-    @Schema(description = "Email address for inviting users who don't have an account yet", example = "user@example.com")
+    @Schema(
+            description = "Email address of the registered user to invite as participant. Either userId or email must be provided when creating a participant.",
+            example = "john.doe@example.com"
+    )
     private String email;
 
     @NotNull
-    @Schema(description = "Role of the participant in the trip", example = "MEMBER")
+    @Schema(
+            description = "Role of the participant in the trip",
+            example = "MEMBER",
+            allowableValues = {"ORGANIZER", "MEMBER", "GUEST"}
+    )
     private ParticipantRole role;
 
-    @Schema(description = "Current status of the invitation", example = "PENDING", accessMode = Schema.AccessMode.READ_ONLY)
+    @Schema(
+            description = "Current status of the invitation",
+            example = "PENDING",
+            accessMode = Schema.AccessMode.READ_ONLY,
+            allowableValues = {"PENDING", "ACCEPTED", "DECLINED"}
+    )
     private InvitationStatus status;
 }
