@@ -31,8 +31,35 @@ public class UserService implements UserDetailsService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
+    /**
+     * Finds user ID by email address
+     * @param email The email to search for
+     * @return UUID of the user or null if not found
+     */
+    public UUID findUserIdByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(User::getId)
+                .orElse(null);
+    }
 
-    public boolean existsByEmail(String email) {
+    /**
+     * Finds email by user ID
+     * @param userId The user ID to search for
+     * @return Email of the user or null if not found
+     */
+    public String findEmailByUserId(UUID userId) {
+        return userRepository.findById(userId)
+                .map(User::getEmail)
+                .orElse(null);
+    }
+
+    /**
+     * Validates that a user exists by email
+     * @param email The email to check
+     * @return true if user exists, false otherwise
+     */
+    public boolean isRegisteredUser(String email) {
         return userRepository.existsByEmail(email);
     }
+
 }

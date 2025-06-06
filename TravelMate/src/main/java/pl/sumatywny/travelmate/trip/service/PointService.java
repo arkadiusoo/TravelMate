@@ -8,6 +8,7 @@ import pl.sumatywny.travelmate.trip.model.Trip;
 import pl.sumatywny.travelmate.trip.repository.TripRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -21,26 +22,26 @@ public class PointService {
         this.tripRepo = tripRepo;
     }
 
-    public List<Point> findByTripId(Long tripId) {
+    public List<Point> findByTripId(UUID tripId) {  // Changed Long to UUID
         verifyTripExists(tripId);
         return pointRepo.findByTripId(tripId);
     }
 
-    public Point findById(Long tripId, Long pointId) {
+    public Point findById(UUID tripId, Long pointId) {  // Changed Long to UUID for tripId
         verifyTripExists(tripId);
         return pointRepo.findById(pointId)
                 .filter(p -> p.getTrip().getId().equals(tripId))
                 .orElseThrow(() -> new RuntimeException());
     }
 
-    public Point create(Long tripId, Point point) {
+    public Point create(UUID tripId, Point point) {  // Changed Long to UUID
         Trip trip = tripRepo.findById(tripId)
                 .orElseThrow(() -> new RuntimeException());
         point.setTrip(trip);
         return pointRepo.save(point);
     }
 
-    public Point update(Long tripId, Long pointId, Point point) {
+    public Point update(UUID tripId, Long pointId, Point point) {  // Changed Long to UUID for tripId
         Point existing = findById(tripId, pointId);
         existing.setTitle(point.getTitle());
         existing.setDate(point.getDate());
@@ -50,7 +51,7 @@ public class PointService {
         return pointRepo.save(existing);
     }
 
-    public void delete(Long tripId, Long pointId) {
+    public void delete(UUID tripId, Long pointId) {  // Changed Long to UUID for tripId
         verifyTripExists(tripId);
         if (!pointRepo.existsById(pointId)) {
             throw new RuntimeException();
@@ -58,7 +59,7 @@ public class PointService {
         pointRepo.deleteById(pointId);
     }
 
-    private void verifyTripExists(Long tripId) {
+    private void verifyTripExists(UUID tripId) {  // Changed Long to UUID
         if (!tripRepo.existsById(tripId)) {
             throw new RuntimeException();
         }

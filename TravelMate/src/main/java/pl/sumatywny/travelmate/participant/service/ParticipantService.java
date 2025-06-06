@@ -1,15 +1,14 @@
 package pl.sumatywny.travelmate.participant.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 import pl.sumatywny.travelmate.config.NotFoundException;
 import pl.sumatywny.travelmate.participant.dto.ParticipantDTO;
 import pl.sumatywny.travelmate.participant.model.InvitationStatus;
 import pl.sumatywny.travelmate.participant.model.Participant;
 import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
+import pl.sumatywny.travelmate.security.service.UserService;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,10 +21,12 @@ public class ParticipantService {
     private final ParticipantRepository participantRepository;
     private final ParticipantMapper participantMapper;
     private final TripPermissionService permissionService;
+    private final UserService userService;
 
     /**
      * Dodaje nowego uczestnika do wycieczki.
      * Uczestnik może być zaproszony przez ID użytkownika lub adres email.
+     * Działa tylko z zarejestrowanymi użytkownikami.
      *
      * @param participantDTO Dane nowego uczestnika
      * @param currentUserId ID użytkownika wykonującego operację
@@ -38,16 +39,29 @@ public class ParticipantService {
             System.out.println("Starting addParticipant with DTO: " + participantDTO);
             System.out.println("Current user ID: " + currentUserId);
 
-            // Sprawdzenie uprawnień
-            if (!permissionService.canInviteParticipants(participantDTO.getTripId(), currentUserId)) {
-                System.out.println("Permission check failed");
-                throw new IllegalStateException("Nie masz uprawnień do zapraszania uczestników");
+            // 🔥 NEW: Check if this is the first participant (trip creator)
+            List<Participant> existingParticipants = participantRepository.findAllByTripId(participantDTO.getTripId());
+            boolean isFirstParticipant = existingParticipants.isEmpty();
+            boolean isCreatorAsOrganizer = participantDTO.getRole() == ParticipantRole.ORGANIZER
+                    && participantDTO.getUserId() != null
+                    && participantDTO.getUserId().equals(currentUserId);
+
+            // Skip permission check for trip creator
+            if (!(isFirstParticipant && isCreatorAsOrganizer)) {
+                // Sprawdzenie uprawnień
+                if (!permissionService.canInviteParticipants(participantDTO.getTripId(), currentUserId)) {
+                    System.out.println("Permission check failed");
+                    throw new IllegalStateException("Nie masz uprawnień do zapraszania uczestników");
+                }
+            } else {
+                System.out.println("Skipping permission check - trip creator");
             }
             System.out.println("Permission check passed");
 
-            // Tylko ORGANIZER może dodawać innych organizatorów
+            // Tylko ORGANIZER może dodawać innych organizatorów (skip for trip creator)
             if (participantDTO.getRole() == ParticipantRole.ORGANIZER &&
-                    !permissionService.hasRoleOrHigher(participantDTO.getTripId(), currentUserId, ParticipantRole.ORGANIZER)) {
+                    !permissionService.hasRoleOrHigher(participantDTO.getTripId(), currentUserId, ParticipantRole.ORGANIZER) &&
+                    !(isFirstParticipant && isCreatorAsOrganizer)) {
                 System.out.println("Organizer permission check failed");
                 throw new IllegalStateException("Tylko organizatorzy mogą dodawać innych organizatorów");
             }
@@ -61,10 +75,40 @@ public class ParticipantService {
             }
             System.out.println("Basic validation passed");
 
-            // Sprawdzenie czy użytkownik jest już uczestnikiem tej wycieczki (jeśli podano userId)
-            if (participantDTO.getUserId() != null &&
-                    participantRepository.existsByTripIdAndUserId(
-                            participantDTO.getTripId(), participantDTO.getUserId())) {
+            // Jeśli podano tylko email, znajdź odpowiadający userId
+            if (participantDTO.getUserId() == null && participantDTO.getEmail() != null) {
+                UUID resolvedUserId = userService.findUserIdByEmail(participantDTO.getEmail());
+                if (resolvedUserId == null) {
+                    System.out.println("Email not found in registered users: " + participantDTO.getEmail());
+                    throw new IllegalArgumentException("Nie znaleziono zarejestrowanego użytkownika z emailem: " + participantDTO.getEmail());
+                }
+                participantDTO.setUserId(resolvedUserId);
+                System.out.println("Resolved email to userId: " + resolvedUserId);
+            }
+
+            // Jeśli podano tylko userId, znajdź odpowiadający email
+            if (participantDTO.getUserId() != null && participantDTO.getEmail() == null) {
+                String userEmail = userService.findEmailByUserId(participantDTO.getUserId());
+                if (userEmail == null) {
+                    System.out.println("UserId not found in registered users: " + participantDTO.getUserId());
+                    throw new IllegalArgumentException("Nie znaleziono użytkownika z ID: " + participantDTO.getUserId());
+                }
+                participantDTO.setEmail(userEmail);
+                System.out.println("Resolved userId to email: " + userEmail);
+            }
+
+            // Walidacja spójności - sprawdź czy email i userId należą do tego samego użytkownika
+            if (participantDTO.getUserId() != null && participantDTO.getEmail() != null) {
+                UUID emailUserId = userService.findUserIdByEmail(participantDTO.getEmail());
+                if (!participantDTO.getUserId().equals(emailUserId)) {
+                    System.out.println("Email and userId mismatch");
+                    throw new IllegalArgumentException("Podany email i userId nie należą do tego samego użytkownika");
+                }
+            }
+
+            // Sprawdzenie czy użytkownik jest już uczestnikiem tej wycieczki (teraz zawsze mamy userId)
+            if (participantRepository.existsByTripIdAndUserId(
+                    participantDTO.getTripId(), participantDTO.getUserId())) {
                 System.out.println("User already exists in trip");
                 throw new IllegalArgumentException("Użytkownik jest już uczestnikiem tej wycieczki");
             }
@@ -91,7 +135,7 @@ public class ParticipantService {
         }
     }
     /**
-     * Aktualizuje rolę uczestnika.
+     * Aktualizuje rolę uczestnika używając ID uczestnika.
      *
      * @param id ID uczestnika do zaktualizowania
      * @param updates Aktualizacje do zastosowania
@@ -109,6 +153,42 @@ public class ParticipantService {
             throw new IllegalStateException("Nie masz uprawnień do zarządzania tym uczestnikiem");
         }
 
+        return updateParticipantInternal(existing, updates, currentUserId);
+    }
+
+    /**
+     * Aktualizuje rolę uczestnika używając email.
+     *
+     * @param tripId ID wycieczki
+     * @param email Email uczestnika
+     * @param updates Aktualizacje do zastosowania
+     * @param currentUserId ID użytkownika wykonującego operację
+     * @return Zaktualizowany uczestnik jako DTO
+     * @throws NotFoundException Jeśli uczestnik nie istnieje
+     * @throws IllegalStateException Jeśli użytkownik nie ma uprawnień
+     * @throws IllegalArgumentException Jeśli email nie należy do zarejestrowanego użytkownika
+     */
+    public ParticipantDTO updateParticipantRoleByEmail(UUID tripId, String email, ParticipantDTO updates, UUID currentUserId) {
+        // Walidacja że email należy do zarejestrowanego użytkownika
+        if (!userService.isRegisteredUser(email)) {
+            throw new IllegalArgumentException("Nie znaleziono zarejestrowanego użytkownika z tym emailem");
+        }
+
+        Participant existing = participantRepository.findByTripIdAndEmail(tripId, email)
+                .orElseThrow(() -> new NotFoundException("Nie znaleziono uczestnika z tym emailem w tej wycieczce"));
+
+        // Sprawdzenie uprawnień
+        if (!permissionService.canManageParticipant(existing.getTripId(), currentUserId, existing.getId())) {
+            throw new IllegalStateException("Nie masz uprawnień do zarządzania tym uczestnikiem");
+        }
+
+        return updateParticipantInternal(existing, updates, currentUserId);
+    }
+
+    /**
+     * Wewnętrzna metoda do aktualizacji uczestnika.
+     */
+    private ParticipantDTO updateParticipantInternal(Participant existing, ParticipantDTO updates, UUID currentUserId) {
         // Sprawdzenie czy może przydzielić rolę (jeśli podano rolę)
         if (updates.getRole() != null) {
             if (!permissionService.canAssignRole(existing.getTripId(), currentUserId, updates.getRole())) {
@@ -123,7 +203,7 @@ public class ParticipantService {
     }
 
     /**
-     * Usuwa uczestnika z wycieczki.
+     * Usuwa uczestnika z wycieczki używając ID uczestnika.
      *
      * @param id ID uczestnika do usunięcia
      * @param currentUserId ID użytkownika wykonującego operację
@@ -143,6 +223,33 @@ public class ParticipantService {
     }
 
     /**
+     * Usuwa uczestnika z wycieczki używając email.
+     *
+     * @param tripId ID wycieczki
+     * @param email Email uczestnika
+     * @param currentUserId ID użytkownika wykonującego operację
+     * @throws NotFoundException Jeśli uczestnik nie istnieje
+     * @throws IllegalStateException Jeśli użytkownik nie ma uprawnień
+     * @throws IllegalArgumentException Jeśli email nie należy do zarejestrowanego użytkownika
+     */
+    public void removeParticipantByEmail(UUID tripId, String email, UUID currentUserId) {
+        // Walidacja że email należy do zarejestrowanego użytkownika
+        if (!userService.isRegisteredUser(email)) {
+            throw new IllegalArgumentException("Nie znaleziono zarejestrowanego użytkownika z tym emailem");
+        }
+
+        Participant participant = participantRepository.findByTripIdAndEmail(tripId, email)
+                .orElseThrow(() -> new NotFoundException("Nie znaleziono uczestnika z tym emailem w tej wycieczce"));
+
+        // Sprawdzenie uprawnień
+        if (!permissionService.canManageParticipant(participant.getTripId(), currentUserId, participant.getId())) {
+            throw new IllegalStateException("Nie masz uprawnień do usunięcia tego uczestnika");
+        }
+
+        participantRepository.delete(participant);
+    }
+
+    /**
      * Zwraca listę wszystkich uczestników wycieczki.
      *
      * @param tripId ID wycieczki
@@ -156,7 +263,7 @@ public class ParticipantService {
     }
 
     /**
-     * Przetwarza odpowiedź na zaproszenie do wycieczki.
+     * Przetwarza odpowiedź na zaproszenie do wycieczki używając ID uczestnika.
      *
      * @param participantId ID rekordu uczestnika
      * @param status Nowy status (ACCEPTED lub DECLINED)
@@ -181,7 +288,52 @@ public class ParticipantService {
             throw new IllegalStateException("Tylko oczekujące zaproszenia mogą być aktualizowane");
         }
 
-        // Użytkownik może odpowiadać tylko na własne zaproszenia
+        // Tylko użytkownik może odpowiadać na własne zaproszenia
+        if (!participant.getUserId().equals(currentUserId)) {
+            throw new IllegalStateException("Możesz odpowiadać tylko na własne zaproszenia");
+        }
+
+        // Aktualizacja statusu
+        participant.setStatus(status);
+        Participant updated = participantRepository.save(participant);
+
+        // Zwrócenie zaktualizowanego DTO
+        return participantMapper.toDTO(updated);
+    }
+
+    /**
+     * Przetwarza odpowiedź na zaproszenie do wycieczki używając email.
+     *
+     * @param tripId ID wycieczki
+     * @param email Email uczestnika
+     * @param status Nowy status (ACCEPTED lub DECLINED)
+     * @param currentUserId ID użytkownika wykonującego operację
+     * @return Zaktualizowany ParticipantDTO
+     * @throws IllegalArgumentException Jeśli status jest nieprawidłowy lub email nie należy do zarejestrowanego użytkownika
+     * @throws NotFoundException Jeśli uczestnik nie istnieje
+     * @throws IllegalStateException Jeśli zaproszenie nie jest oczekujące lub użytkownik nie ma uprawnień
+     */
+    public ParticipantDTO respondToInvitationByEmail(UUID tripId, String email, InvitationStatus status, UUID currentUserId) {
+        // Tylko ACCEPTED lub DECLINED są poprawnymi odpowiedziami
+        if (status == InvitationStatus.PENDING) {
+            throw new IllegalArgumentException("Status musi być ACCEPTED lub DECLINED");
+        }
+
+        // Walidacja że email należy do zarejestrowanego użytkownika
+        if (!userService.isRegisteredUser(email)) {
+            throw new IllegalArgumentException("Nie znaleziono zarejestrowanego użytkownika z tym emailem");
+        }
+
+        // Znalezienie rekordu uczestnika
+        Participant participant = participantRepository.findByTripIdAndEmail(tripId, email)
+                .orElseThrow(() -> new NotFoundException("Nie znaleziono uczestnika z tym emailem w tej wycieczce"));
+
+        // Tylko oczekujące zaproszenia mogą być aktualizowane
+        if (participant.getStatus() != InvitationStatus.PENDING) {
+            throw new IllegalStateException("Tylko oczekujące zaproszenia mogą być aktualizowane");
+        }
+
+        // Tylko użytkownik może odpowiadać na własne zaproszenia
         if (!participant.getUserId().equals(currentUserId)) {
             throw new IllegalStateException("Możesz odpowiadać tylko na własne zaproszenia");
         }

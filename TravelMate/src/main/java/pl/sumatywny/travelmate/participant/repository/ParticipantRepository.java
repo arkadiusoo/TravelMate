@@ -13,7 +13,7 @@ import java.util.UUID;
  * Extends JpaRepository to inherit standard CRUD operations.
  */
 public interface ParticipantRepository extends JpaRepository<Participant, UUID> {
-
+    
     /**
      * Finds all participants for a specific trip.
      *
@@ -21,7 +21,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * @return List of all participants in the trip
      */
     List<Participant> findAllByTripId(UUID tripId);
-
+    
     /**
      * Finds a specific participant by both trip ID and user ID.
      *
@@ -30,7 +30,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * @return Optional containing the participant if found
      */
     Optional<Participant> findByTripIdAndUserId(UUID tripId, UUID userId);
-
+    
     /**
      * Checks if a user is already a participant in a specific trip.
      *
@@ -39,7 +39,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * @return True if the user is already a participant in the trip
      */
     boolean existsByTripIdAndUserId(UUID tripId, UUID userId);
-
+    
     /**
      * Finds all invitations for a user with a specific status.
      * Useful for finding pending invitations for a user.
@@ -49,6 +49,22 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
      * @return List of matching participant records
      */
     List<Participant> findByUserIdAndStatus(UUID userId, InvitationStatus status);
-
-    Participant getParticipantByEmail(String author);
+    
+    /**
+     * Finds a specific participant by both trip ID and email.
+     *
+     * @param tripId The ID of the trip
+     * @param email The email of the participant
+     * @return Optional containing the participant if found
+     */
+    Optional<Participant> findByTripIdAndEmail(UUID tripId, String email);
+    
+    /**
+     * Checks if an email is already a participant in a specific trip.
+     *
+     * @param tripId The ID of the trip
+     * @param email The email to check
+     * @return True if the email is already a participant in the trip
+     */
+    boolean existsByTripIdAndEmail(UUID tripId, String email);
 }
