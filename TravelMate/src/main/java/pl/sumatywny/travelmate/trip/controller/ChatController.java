@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pl.sumatywny.travelmate.trip.dto.ChatRequestDto;
@@ -22,6 +23,7 @@ public class ChatController {
 
     private final OpenAiService openAiService;
 
+    @Autowired
     public ChatController(OpenAiService openAiService) {
         this.openAiService = openAiService;
     }
