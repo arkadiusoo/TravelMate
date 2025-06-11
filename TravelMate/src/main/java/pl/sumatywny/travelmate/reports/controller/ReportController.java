@@ -7,7 +7,6 @@ import pl.sumatywny.travelmate.reports.dto.NoteDTO;
 import pl.sumatywny.travelmate.reports.service.ReportService;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 public class ReportController {
@@ -18,12 +17,12 @@ public class ReportController {
     }
 
     @GetMapping(value = "/notes/trip/{tripId}")
-    public ResponseEntity<List<NoteDTO>> getTripNotes(@PathVariable("tripId") UUID tripId) {
+    public ResponseEntity<List<NoteDTO>> getTripNotes(@PathVariable("tripId") Long tripId) {
         return ResponseEntity.ok(reportService.getTripNotes(tripId));
     }
 
     @PostMapping(value = "/notes/add")
-    public ResponseEntity<String> addNote(@RequestParam UUID tripId, @RequestBody NoteDTO noteDTO) {
+    public ResponseEntity<String> addNote(@RequestParam Long tripId, @RequestBody NoteDTO noteDTO) {
         reportService.addNote(noteDTO.getAuthor(), noteDTO.getContent(), tripId);
         return ResponseEntity.ok("Added note successfully");
     }

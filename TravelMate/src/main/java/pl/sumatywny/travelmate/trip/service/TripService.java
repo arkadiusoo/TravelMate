@@ -2,7 +2,6 @@ package pl.sumatywny.travelmate.trip.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pl.sumatywny.travelmate.participant.model.Participant;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
 import pl.sumatywny.travelmate.participant.service.ParticipantService;
 import pl.sumatywny.travelmate.participant.dto.ParticipantDTO;
@@ -36,7 +35,7 @@ public class TripService {
         return tripRepo.findAll();
     }
 
-    public Trip findById(UUID id) {
+    public Trip findById(Long id) {
         return tripRepo.findById(id).orElseThrow(() -> new RuntimeException("Trip not found"));
     }
 
