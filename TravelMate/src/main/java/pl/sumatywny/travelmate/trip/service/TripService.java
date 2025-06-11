@@ -35,7 +35,7 @@ public class TripService {
         return tripRepo.findAll();
     }
 
-    public Trip findById(Long id) {
+    public Trip findById(UUID id) {
         return tripRepo.findById(id).orElseThrow(() -> new RuntimeException("Trip not found"));
     }
 
