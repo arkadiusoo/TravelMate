@@ -11,14 +11,15 @@ import pl.sumatywny.travelmate.participant.model.Participant;
 import pl.sumatywny.travelmate.trip.model.Trip;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Setter
 @Getter
 @Entity
 public class Note {
     @Id
-    @GeneratedValue
-    private Long id;
+    @GeneratedValue()
+    private UUID id;
 
     private String content;
 

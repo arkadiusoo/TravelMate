@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -15,7 +16,7 @@ import java.time.LocalDateTime;
 @Schema(description = "Single Note")
 
 public class NoteDTO {
-    private Long id;
+    private UUID id;
     @Schema(
             description = "Date of Note"
     )

@@ -2,7 +2,6 @@ package pl.sumatywny.travelmate.trip.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pl.sumatywny.travelmate.participant.model.Participant;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
 import pl.sumatywny.travelmate.participant.service.ParticipantService;
 import pl.sumatywny.travelmate.participant.dto.ParticipantDTO;
