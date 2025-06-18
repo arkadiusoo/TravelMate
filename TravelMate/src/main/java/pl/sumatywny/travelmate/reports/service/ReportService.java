@@ -57,7 +57,7 @@ public class ReportService {
         noteRepository.save(newNote);
     }
 
-    public void alterNote(Long noteId, String newContent) {
+    public void alterNote(UUID noteId, String newContent) {
         Note alteredNote = noteRepository.getNoteById(noteId);
         alteredNote.setContent(newContent);
         alteredNote.setDate(LocalDate.now());

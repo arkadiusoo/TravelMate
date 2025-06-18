@@ -6,10 +6,11 @@ import pl.sumatywny.travelmate.reports.entity.Note;
 import pl.sumatywny.travelmate.trip.model.Trip;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface NoteRepository extends JpaRepository<Note, Long> {
+public interface NoteRepository extends JpaRepository<Note, UUID> {
     List<Note> getNotesByTrip(Trip trip);
 
-    Note getNoteById(Long noteId);
+    Note getNoteById(UUID noteId);
 }
