@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/trips/{tripId}/expenses")
+@RequestMapping("api/trips/{tripId}/expenses")
 @RequiredArgsConstructor
 @Tag(name = "Expenses", description = "Operations related to trip expenses: creating, listing, deleting, and summarizing trip-related financial data.")
 public class ExpenseController {
