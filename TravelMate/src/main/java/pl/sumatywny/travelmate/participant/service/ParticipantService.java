@@ -8,6 +8,7 @@ import pl.sumatywny.travelmate.participant.model.InvitationStatus;
 import pl.sumatywny.travelmate.participant.model.Participant;
 import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
+import pl.sumatywny.travelmate.security.model.User;
 import pl.sumatywny.travelmate.security.service.UserService;
 
 import java.util.List;
@@ -249,16 +250,29 @@ public class ParticipantService {
         participantRepository.delete(participant);
     }
 
+// Replace your existing getParticipantsByTrip method with this:
     /**
-     * Zwraca listę wszystkich uczestników wycieczki.
+     * Zwraca listę wszystkich uczestników wycieczki z populated user details.
      *
      * @param tripId ID wycieczki
-     * @return Lista wszystkich uczestników wycieczki jako DTO
+     * @return Lista wszystkich uczestników wycieczki jako DTO z pełnymi danymi użytkownika
      */
     public List<ParticipantDTO> getParticipantsByTrip(UUID tripId) {
         return participantRepository.findAllByTripId(tripId)
                 .stream()
-                .map(participantMapper::toDTO)
+                .map(participant -> {
+                    ParticipantDTO dto = participantMapper.toDTO(participant);
+
+                    // Get full user details
+                    User user = userService.findById(participant.getUserId());
+
+                    // Populate all user information
+                    dto.setEmail(user.getEmail());
+                    dto.setFirstName(user.getFirstName());
+                    dto.setLastName(user.getLastName());
+
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

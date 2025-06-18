@@ -51,6 +51,20 @@ public class ParticipantDTO {
     )
     private String email;
 
+    @Schema(
+            description = "First name of the user (populated from User entity)",
+            example = "John",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String firstName;
+
+    @Schema(
+            description = "Last name of the user (populated from User entity)",
+            example = "Doe",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private String lastName;
+
     @NotNull
     @Schema(
             description = "Role of the participant in the trip",
@@ -66,4 +80,23 @@ public class ParticipantDTO {
             allowableValues = {"PENDING", "ACCEPTED", "DECLINED"}
     )
     private InvitationStatus status;
+
+    /**
+     * Helper method to get display name for UI
+     */
+    public String getDisplayName() {
+        if (firstName != null && lastName != null && !firstName.trim().isEmpty() && !lastName.trim().isEmpty()) {
+            return (firstName + " " + lastName).trim();
+        }
+
+        if (firstName != null && !firstName.trim().isEmpty()) {
+            return firstName;
+        }
+
+        if (email != null) {
+            return email.split("@")[0];
+        }
+
+        return "Unknown User";
+    }
 }

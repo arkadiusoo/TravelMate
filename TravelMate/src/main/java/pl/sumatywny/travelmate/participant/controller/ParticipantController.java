@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/trips/{tripId}/participants")
+@RequestMapping("api/trips/{tripId}/participants")
 @RequiredArgsConstructor
 @Tag(name = "Participants", description = "Operations for managing trip participants")
 public class ParticipantController {
@@ -49,6 +49,7 @@ public class ParticipantController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "List of participants retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied - not a participant"),
             @ApiResponse(responseCode = "404", description = "Trip not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
@@ -61,7 +62,18 @@ public class ParticipantController {
             )
             @PathVariable UUID tripId
     ) {
-        return ResponseEntity.ok(participantService.getParticipantsByTrip(tripId));
+        UUID currentUserId = getCurrentUserId();
+
+        // Check if current user is a participant in this trip
+        List<ParticipantDTO> allParticipants = participantService.getParticipantsByTrip(tripId);
+        boolean isParticipant = allParticipants.stream()
+                .anyMatch(p -> p.getUserId().equals(currentUserId));
+
+        if (!isParticipant) {
+            throw new RuntimeException("Access denied: You are not a participant in this trip");
+        }
+
+        return ResponseEntity.ok(allParticipants);
     }
 
     @Operation(
