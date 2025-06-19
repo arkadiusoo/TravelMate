@@ -77,7 +77,7 @@ public class TripPermissionService {
      */
     public boolean canInviteParticipants(UUID tripId, UUID userId) {
         // ORGANIZER może zapraszać uczestników
-        return hasRoleOrHigher(tripId, userId, ParticipantRole.ORGANIZER);
+        return hasRoleOrHigher(tripId, userId, ParticipantRole.MEMBER);
         //return true;
     }
 
