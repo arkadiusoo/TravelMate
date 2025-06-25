@@ -42,6 +42,9 @@ public class ParticipantMapper {
                 .role(entity.getRole())
                 .status(entity.getStatus())
                 .email(entity.getEmail())
+                .createdAt(entity.getCreatedAt())        // NEW
+                .joinedAt(entity.getJoinedAt())          // NEW
+                .updatedAt(entity.getUpdatedAt())        // NEW
                 .build();
     }
 }

@@ -10,6 +10,7 @@ import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
 import pl.sumatywny.travelmate.security.model.User;
 import pl.sumatywny.travelmate.security.service.UserService;
+import java.time.LocalDateTime;
 
 import java.util.List;
 import java.util.Optional;
@@ -324,12 +325,17 @@ public class ParticipantService {
 
         // Aktualizacja statusu
         participant.setStatus(status);
+
+        // NEW: Set joinedAt when accepting invitation
+        if (status == InvitationStatus.ACCEPTED) {
+            participant.setJoinedAt(LocalDateTime.now());
+        }
+
         Participant updated = participantRepository.save(participant);
 
         // Zwrócenie zaktualizowanego DTO
         return participantMapper.toDTO(updated);
     }
-
     /**
      * Przetwarza odpowiedź na zaproszenie do wycieczki używając email.
      *
@@ -369,9 +375,14 @@ public class ParticipantService {
 
         // Aktualizacja statusu
         participant.setStatus(status);
+        if (status == InvitationStatus.ACCEPTED) {
+            participant.setJoinedAt(LocalDateTime.now());
+        }
         Participant updated = participantRepository.save(participant);
 
         // Zwrócenie zaktualizowanego DTO
         return participantMapper.toDTO(updated);
     }
+
+
 }

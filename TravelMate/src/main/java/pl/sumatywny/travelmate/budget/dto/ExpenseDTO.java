@@ -41,6 +41,11 @@ public class ExpenseDTO {
     @Schema(description = "Optional description of the expense", example = "Dinner at a local restaurant")
     private String description;
 
+    @Schema(
+            description = "List of participant names who share this expense",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private List<String> participantNames;
     @NotNull
     @Schema(description = "Date when the expense occurred", example = "2025-04-20")
     private LocalDate date;

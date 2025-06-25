@@ -47,4 +47,6 @@ public class Participant {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+    @Column(name = "joined_at")
+    private LocalDateTime joinedAt;
 }
