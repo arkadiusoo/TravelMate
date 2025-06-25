@@ -29,9 +29,6 @@ public class ExpenseDTO {
     @Schema(description = "Name of expense", example = "Hotel")
     private String name;
 
-    @NotNull
-    @Schema(description = "Identifier of the user who created this expense", example = "e8c40d9a-11e2-47cb-90fc-1c6d5bd6b0ae")
-    private UUID creatorId;
     @Schema(description = "Identifier of the trip to which this expense belongs", example = "b7c308ff-4906-4c63-bc8a-27a3ac0aa8f3")
     private UUID tripId;
 
