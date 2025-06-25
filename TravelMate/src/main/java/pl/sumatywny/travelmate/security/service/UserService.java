@@ -1,6 +1,7 @@
 package pl.sumatywny.travelmate.security.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -62,4 +63,20 @@ public class UserService implements UserDetailsService {
         return userRepository.existsByEmail(email);
     }
 
+    /**
+     * Gets current user ID from authentication context
+     * @param authentication Current authentication object
+     * @return UUID of the current user
+     * @throws IllegalStateException if user not authenticated or not found
+     */
+    public UUID getCurrentUserId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("User not authenticated");
+        }
+
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .map(User::getId)
+                .orElseThrow(() -> new IllegalStateException("User not found with email: " + email));
+    }
 }

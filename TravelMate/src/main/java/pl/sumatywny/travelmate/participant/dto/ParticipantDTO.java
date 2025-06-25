@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import pl.sumatywny.travelmate.participant.model.InvitationStatus;
 import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -80,6 +81,24 @@ public class ParticipantDTO {
             allowableValues = {"PENDING", "ACCEPTED", "DECLINED"}
     )
     private InvitationStatus status;
+
+    @Schema(
+            description = "When the invitation was created",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private LocalDateTime createdAt;
+
+    @Schema(
+            description = "When the user joined (accepted the invitation)",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private LocalDateTime joinedAt;
+
+    @Schema(
+            description = "When the participant record was last updated",
+            accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private LocalDateTime updatedAt;
 
     /**
      * Helper method to get display name for UI

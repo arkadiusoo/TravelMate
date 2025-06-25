@@ -10,8 +10,10 @@ import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
 import pl.sumatywny.travelmate.security.model.User;
 import pl.sumatywny.travelmate.security.service.UserService;
+import java.time.LocalDateTime;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -107,13 +109,28 @@ public class ParticipantService {
                 }
             }
 
-            // Sprawdzenie czy użytkownik jest już uczestnikiem tej wycieczki (teraz zawsze mamy userId)
-            if (participantRepository.existsByTripIdAndUserId(
-                    participantDTO.getTripId(), participantDTO.getUserId())) {
-                System.out.println("User already exists in trip");
-                throw new IllegalArgumentException("Użytkownik jest już uczestnikiem tej wycieczki");
+            // ✅ UPDATED: Check existing participation more intelligently
+            Optional<Participant> existingParticipant = participantRepository.findByTripIdAndUserId(
+                    participantDTO.getTripId(), participantDTO.getUserId());
+
+            if (existingParticipant.isPresent()) {
+                Participant existing = existingParticipant.get();
+                InvitationStatus currentStatus = existing.getStatus();
+
+                if (currentStatus == InvitationStatus.PENDING) {
+                    throw new IllegalArgumentException("Użytkownik ma już oczekujące zaproszenie do tej wycieczki");
+                } else if (currentStatus == InvitationStatus.ACCEPTED) {
+                    throw new IllegalArgumentException("Użytkownik jest już uczestnikiem tej wycieczki");
+                } else if (currentStatus == InvitationStatus.DECLINED) {
+                    // ✅ ALLOW RE-INVITING: Update existing declined invitation to pending
+                    System.out.println("Re-inviting previously declined user - updating existing record");
+                    existing.setRole(participantDTO.getRole()); // Update role in case it changed
+                    existing.setStatus(InvitationStatus.PENDING); // Reset to pending
+                    Participant updated = participantRepository.save(existing);
+                    return participantMapper.toDTO(updated);
+                }
             }
-            System.out.println("User existence check passed");
+            System.out.println("User participation check passed");
 
             // Domyślny status dla nowych zaproszeń to PENDING
             if (participantDTO.getStatus() == null) {
@@ -121,7 +138,7 @@ public class ParticipantService {
                 participantDTO.setStatus(InvitationStatus.PENDING);
             }
 
-            // Utworzenie i zapisanie uczestnika
+            // Utworzenie i zapisanie uczestnika (only for completely new participants)
             System.out.println("Converting DTO to entity");
             Participant participant = participantMapper.toEntity(participantDTO);
             System.out.println("Created entity: " + participant);
@@ -134,8 +151,7 @@ public class ParticipantService {
             e.printStackTrace();
             throw e;
         }
-    }
-    /**
+    }/**
      * Aktualizuje rolę uczestnika używając ID uczestnika.
      *
      * @param id ID uczestnika do zaktualizowania
@@ -309,12 +325,17 @@ public class ParticipantService {
 
         // Aktualizacja statusu
         participant.setStatus(status);
+
+        // NEW: Set joinedAt when accepting invitation
+        if (status == InvitationStatus.ACCEPTED) {
+            participant.setJoinedAt(LocalDateTime.now());
+        }
+
         Participant updated = participantRepository.save(participant);
 
         // Zwrócenie zaktualizowanego DTO
         return participantMapper.toDTO(updated);
     }
-
     /**
      * Przetwarza odpowiedź na zaproszenie do wycieczki używając email.
      *
@@ -354,9 +375,14 @@ public class ParticipantService {
 
         // Aktualizacja statusu
         participant.setStatus(status);
+        if (status == InvitationStatus.ACCEPTED) {
+            participant.setJoinedAt(LocalDateTime.now());
+        }
         Participant updated = participantRepository.save(participant);
 
         // Zwrócenie zaktualizowanego DTO
         return participantMapper.toDTO(updated);
     }
+
+
 }
