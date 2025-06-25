@@ -26,6 +26,12 @@ public class ExpenseDTO {
     @Schema(description = "Unique identifier of the expense", example = "f1a8e0a2-345b-4c99-99ab-bc3f2b97cd1f", accessMode = Schema.AccessMode.READ_ONLY)
     private UUID id;
 
+    @Schema(description = "Name of expense", example = "Hotel")
+    private String name;
+
+    @NotNull
+    @Schema(description = "Identifier of the user who created this expense", example = "e8c40d9a-11e2-47cb-90fc-1c6d5bd6b0ae")
+    private UUID creatorId;
     @Schema(description = "Identifier of the trip to which this expense belongs", example = "b7c308ff-4906-4c63-bc8a-27a3ac0aa8f3")
     private UUID tripId;
 

@@ -86,21 +86,25 @@ public class ExpenseService {
         }
     }
 
-    public ExpenseDTO addExpense(ExpenseDTO expenseDTO, UUID currentUserId) {
-        // ✅ MEMBER i ORGANIZER mogą dodawać
-        checkNotGuest(expenseDTO.getTripId(), currentUserId, "dodawania wydatków");
+public ExpenseDTO addExpense(ExpenseDTO expenseDTO, UUID currentUserId) {
+    // ✅ MEMBER i ORGANIZER mogą dodawać
+    checkNotGuest(expenseDTO.getTripId(), currentUserId, "dodawania wydatków");
 
-        BigDecimal totalShare = expenseDTO.getParticipantShares().values().stream()
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal totalShare = expenseDTO.getParticipantShares().values().stream()
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (totalShare.compareTo(BigDecimal.ONE) != 0) {
-            throw new IllegalArgumentException("Sum of participant shares must equal 1.0");
-        }
+    // Definiujemy tolerancję błędu
+    BigDecimal tolerance = new BigDecimal("0.0000000001");
 
-        Expense expense = expenseMapper.toEntity(expenseDTO);
-        Expense saved = expenseRepository.save(expense);
-        return enhanceWithParticipantNames(saved);
+    // Sprawdzamy, czy suma udziałów różni się od 1.0, uwzględniając tolerancję
+    if (totalShare.subtract(BigDecimal.ONE).abs().compareTo(tolerance) > 0) {
+        throw new IllegalArgumentException("Sum of participant shares must equal 1.0");
     }
+
+    Expense expense = expenseMapper.toEntity(expenseDTO);
+    Expense saved = expenseRepository.save(expense);
+    return enhanceWithParticipantNames(saved);
+}
 
     public void deleteExpense(UUID id, UUID currentUserId) {
         Expense expense = expenseRepository.findById(id)

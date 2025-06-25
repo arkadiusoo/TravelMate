@@ -25,6 +25,9 @@ public class Expense {
     private UUID id;
 
     @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
     private UUID tripId;
 
     @Column(nullable = false)

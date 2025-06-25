@@ -12,6 +12,7 @@ public class ExpenseMapper {
 
         return Expense.builder()
                 .id(dto.getId())
+                .name(dto.getName())
                 .tripId(dto.getTripId())
                 .amount(dto.getAmount())
                 .category(dto.getCategory())
@@ -27,6 +28,7 @@ public class ExpenseMapper {
 
         return ExpenseDTO.builder()
                 .id(entity.getId())
+                .name(entity.getName())
                 .tripId(entity.getTripId())
                 .amount(entity.getAmount())
                 .category(entity.getCategory())
