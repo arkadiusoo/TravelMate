@@ -2,6 +2,7 @@ package pl.sumatywny.travelmate.reports.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import pl.sumatywny.travelmate.reports.dto.NoteDTO;
 import pl.sumatywny.travelmate.reports.service.ReportService;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api")
 public class ReportController {
     ReportService reportService;
     @Autowired
@@ -23,7 +25,7 @@ public class ReportController {
     }
 
     @PostMapping(value = "/notes/add")
-    public ResponseEntity<String> addNote(@RequestParam UUID tripId, @RequestBody NoteDTO noteDTO) {
+    public ResponseEntity<String> addNote(@RequestParam UUID tripId, @RequestBody NoteDTO noteDTO, Authentication authentication) {
         reportService.addNote(noteDTO.getAuthor(), noteDTO.getContent(), tripId);
         return ResponseEntity.ok("Added note successfully");
     }

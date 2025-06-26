@@ -21,6 +21,7 @@ public class Point {
     private String description;
     private double latitude;
     private double longitude;
+    private boolean visited;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id")

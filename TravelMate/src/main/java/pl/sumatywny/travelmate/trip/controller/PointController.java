@@ -154,6 +154,30 @@ public class PointController {
         pointService.delete(tripId, id);
     }
 
+    @Operation(
+            summary = "Change a visited status",
+            description = "Changes a visited status for specific point from the trip. User must be a participant.",
+            parameters = {
+                    @Parameter(name = "tripId", description = "ID of the trip"),
+                    @Parameter(name = "id", description = "ID of the point")
+            },
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "Point status successfully changed"),
+                    @ApiResponse(responseCode = "404", description = "Point not found", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "Access denied", content = @Content)
+            }
+    )
+    @PatchMapping("/{id}/visited")
+    public Point markVisited(@PathVariable UUID tripId, @PathVariable Long id, Authentication authentication) {
+        UUID currentUserId = extractUserIdFromAuthentication(authentication);
+
+        if (!tripService.canUserAccessTrip(tripId, currentUserId)) {
+            throw new RuntimeException("Access denied: You are not a participant in this trip");
+        }
+
+        return pointService.markVisited(tripId, id);
+    }
+
     private UUID extractUserIdFromAuthentication(Authentication authentication) {
         String email = authentication.getName();
         User user = userService.findByEmail(email)
