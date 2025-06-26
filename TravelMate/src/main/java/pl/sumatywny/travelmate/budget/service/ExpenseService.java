@@ -192,6 +192,30 @@ public ExpenseDTO addExpense(ExpenseDTO expenseDTO, UUID currentUserId) {
 
                     expense.setParticipantShares(parsed);
                 }
+                case "participantPaymentStatus" -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> rawMap = (Map<String, Object>) value;
+
+                    // Parsowanie wejściowej mapy rawMap do Map<UUID, Boolean>
+                    Map<UUID, Boolean> parsed = new HashMap<>();
+                    for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+                        parsed.put(UUID.fromString(entry.getKey()), Boolean.valueOf(entry.getValue().toString()));
+                    }
+
+                    // Uaktualnienie mapy participantPaymentStatus, zachowując dotychczasowe dane
+                    Map<UUID, Boolean> currentStatus = expense.getParticipantPaymentStatus();
+
+                    // Zaktualizowanie tylko tych statusów, które zmieniły się w `parsed`
+                    for (Map.Entry<UUID, Boolean> entry : parsed.entrySet()) {
+                        // Jeśli status uczestnika uległ zmianie, zaktualizuj wartość w currentStatus
+                        if (!currentStatus.containsKey(entry.getKey()) || !currentStatus.get(entry.getKey()).equals(entry.getValue())) {
+                            currentStatus.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+
+                    // Zaktualizowanie participantPaymentStatus w obiekcie expense
+                    expense.setParticipantPaymentStatus(currentStatus);
+                }
             }
         });
 

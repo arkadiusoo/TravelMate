@@ -20,6 +20,7 @@ public class ExpenseMapper {
                 .date(dto.getDate())
                 .payerId(dto.getPayerId())
                 .participantShares(dto.getParticipantShares())
+                .participantPaymentStatus(dto.getParticipantPaymentStatus())
                 .build();
     }
 
@@ -36,6 +37,7 @@ public class ExpenseMapper {
                 .date(entity.getDate())
                 .payerId(entity.getPayerId())
                 .participantShares(entity.getParticipantShares())
+                .participantPaymentStatus(entity.getParticipantPaymentStatus())
                 .build();
     }
 }

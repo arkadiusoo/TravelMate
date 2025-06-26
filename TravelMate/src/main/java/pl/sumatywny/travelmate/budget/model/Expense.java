@@ -50,7 +50,15 @@ public class Expense {
     @CollectionTable(name = "expense_participant_shares", joinColumns = @JoinColumn(name = "expense_id"))
     @MapKeyColumn(name = "participant_id")
     @Column(name = "share", nullable = false)
+
     private Map<UUID, BigDecimal> participantShares;
+
+    @ElementCollection
+    @CollectionTable(name = "expense_participant_payment_status", joinColumns = @JoinColumn(name = "expense_id"))
+    @MapKeyColumn(name = "participant_id")
+    @Column(name = "isPaid", nullable = false)
+
+    private Map<UUID, Boolean> participantPaymentStatus;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)

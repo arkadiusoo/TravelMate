@@ -64,4 +64,11 @@ public class ExpenseDTO {
     )
     @NotEmpty
     private Map<UUID, BigDecimal> participantShares;
+
+    @Schema(
+        description = "Map of participants and their payment status. " ,
+        example = "{\"e8c4...\": false, \"f3c6...\": true}"
+    )
+    @NotEmpty
+    private Map<UUID, Boolean> participantPaymentStatus;
 }
