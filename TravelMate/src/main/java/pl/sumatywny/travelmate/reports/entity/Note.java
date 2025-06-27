@@ -1,13 +1,11 @@
 package pl.sumatywny.travelmate.reports.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import pl.sumatywny.travelmate.participant.model.Participant;
+import pl.sumatywny.travelmate.trip.model.Point;
 import pl.sumatywny.travelmate.trip.model.Trip;
 
 import java.time.LocalDate;
@@ -30,5 +28,7 @@ public class Note {
 
     @ManyToOne
     private Trip trip;
+    @OneToOne
+    private Point point;
 
 }

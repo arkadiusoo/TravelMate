@@ -45,7 +45,7 @@ public class ReportService {
         return noteDTOs;
     }
 
-    public void addNote(String author, String content, UUID tripId) {
+    public void addNote(String author, String content, UUID tripId, UUID pointId) {
         Trip trip = tripService.findById(tripId);
         Participant participant = participantRepository.getParticipantByEmail(author); // temporary
         LocalDate noteDate = LocalDate.now();
@@ -54,6 +54,7 @@ public class ReportService {
         newNote.setContent(content);
         newNote.setAuthor(participant);
         newNote.setTrip(trip);
+        newNote.setId(pointId);
         noteRepository.save(newNote);
     }
 

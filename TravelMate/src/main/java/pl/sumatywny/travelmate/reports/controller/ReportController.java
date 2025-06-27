@@ -25,14 +25,14 @@ public class ReportController {
     }
 
     @PostMapping(value = "/notes/add")
-    public ResponseEntity<String> addNote(@RequestParam UUID tripId, @RequestBody NoteDTO noteDTO, Authentication authentication) {
-        reportService.addNote(noteDTO.getAuthor(), noteDTO.getContent(), tripId);
+    public ResponseEntity<String> addNote(@RequestParam UUID tripId, @RequestBody NoteDTO noteDTO) {
+        reportService.addNote(noteDTO.getAuthor(), noteDTO.getContent(), tripId, noteDTO.getPointID());
         return ResponseEntity.ok("Added note successfully");
     }
 
     @PostMapping(value = "/notes/alter")
     public ResponseEntity<String> alterNote(@RequestBody NoteDTO noteDTO) {
         reportService.alterNote(noteDTO.getId(), noteDTO.getContent());
-        return ResponseEntity.ok("Added note successfully");
+        return ResponseEntity.ok("Modified note successfully");
     }
 }

@@ -17,10 +17,16 @@ import java.util.UUID;
 
 public class NoteDTO {
     private UUID id;
+
     @Schema(
             description = "Date of Note"
     )
     private LocalDateTime date;
+
+    @Schema(
+            description = "Date of Note"
+    )
+    private UUID pointID;
 
     @Schema(
             description = "Note content"
