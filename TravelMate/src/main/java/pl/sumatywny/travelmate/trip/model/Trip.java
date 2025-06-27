@@ -27,4 +27,6 @@ public class Trip {
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Point> points;
+    @Column(name = "trip_budget", nullable = false)
+    private Double tripBudget;
 }

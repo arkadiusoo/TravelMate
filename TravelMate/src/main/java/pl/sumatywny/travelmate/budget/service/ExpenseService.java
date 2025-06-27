@@ -86,21 +86,25 @@ public class ExpenseService {
         }
     }
 
-    public ExpenseDTO addExpense(ExpenseDTO expenseDTO, UUID currentUserId) {
-        // ✅ MEMBER i ORGANIZER mogą dodawać
-        checkNotGuest(expenseDTO.getTripId(), currentUserId, "dodawania wydatków");
+public ExpenseDTO addExpense(ExpenseDTO expenseDTO, UUID currentUserId) {
+    // ✅ MEMBER i ORGANIZER mogą dodawać
+    checkNotGuest(expenseDTO.getTripId(), currentUserId, "dodawania wydatków");
 
-        BigDecimal totalShare = expenseDTO.getParticipantShares().values().stream()
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    BigDecimal totalShare = expenseDTO.getParticipantShares().values().stream()
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (totalShare.compareTo(BigDecimal.ONE) != 0) {
-            throw new IllegalArgumentException("Sum of participant shares must equal 1.0");
-        }
+    // Definiujemy tolerancję błędu
+    BigDecimal tolerance = new BigDecimal("0.0000000001");
 
-        Expense expense = expenseMapper.toEntity(expenseDTO);
-        Expense saved = expenseRepository.save(expense);
-        return enhanceWithParticipantNames(saved);
+    // Sprawdzamy, czy suma udziałów różni się od 1.0, uwzględniając tolerancję
+    if (totalShare.subtract(BigDecimal.ONE).abs().compareTo(tolerance) > 0) {
+        throw new IllegalArgumentException("Sum of participant shares must equal 1.0");
     }
+
+    Expense expense = expenseMapper.toEntity(expenseDTO);
+    Expense saved = expenseRepository.save(expense);
+    return enhanceWithParticipantNames(saved);
+}
 
     public void deleteExpense(UUID id, UUID currentUserId) {
         Expense expense = expenseRepository.findById(id)
@@ -187,6 +191,30 @@ public class ExpenseService {
                     }
 
                     expense.setParticipantShares(parsed);
+                }
+                case "participantPaymentStatus" -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> rawMap = (Map<String, Object>) value;
+
+                    // Parsowanie wejściowej mapy rawMap do Map<UUID, Boolean>
+                    Map<UUID, Boolean> parsed = new HashMap<>();
+                    for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+                        parsed.put(UUID.fromString(entry.getKey()), Boolean.valueOf(entry.getValue().toString()));
+                    }
+
+                    // Uaktualnienie mapy participantPaymentStatus, zachowując dotychczasowe dane
+                    Map<UUID, Boolean> currentStatus = expense.getParticipantPaymentStatus();
+
+                    // Zaktualizowanie tylko tych statusów, które zmieniły się w `parsed`
+                    for (Map.Entry<UUID, Boolean> entry : parsed.entrySet()) {
+                        // Jeśli status uczestnika uległ zmianie, zaktualizuj wartość w currentStatus
+                        if (!currentStatus.containsKey(entry.getKey()) || !currentStatus.get(entry.getKey()).equals(entry.getValue())) {
+                            currentStatus.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+
+                    // Zaktualizowanie participantPaymentStatus w obiekcie expense
+                    expense.setParticipantPaymentStatus(currentStatus);
                 }
             }
         });

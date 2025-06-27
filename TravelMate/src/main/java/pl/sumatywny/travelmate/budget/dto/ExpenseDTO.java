@@ -26,6 +26,9 @@ public class ExpenseDTO {
     @Schema(description = "Unique identifier of the expense", example = "f1a8e0a2-345b-4c99-99ab-bc3f2b97cd1f", accessMode = Schema.AccessMode.READ_ONLY)
     private UUID id;
 
+    @Schema(description = "Name of expense", example = "Hotel")
+    private String name;
+
     @Schema(description = "Identifier of the trip to which this expense belongs", example = "b7c308ff-4906-4c63-bc8a-27a3ac0aa8f3")
     private UUID tripId;
 
@@ -61,4 +64,11 @@ public class ExpenseDTO {
     )
     @NotEmpty
     private Map<UUID, BigDecimal> participantShares;
+
+    @Schema(
+        description = "Map of participants and their payment status. " ,
+        example = "{\"e8c4...\": false, \"f3c6...\": true}"
+    )
+    @NotEmpty
+    private Map<UUID, Boolean> participantPaymentStatus;
 }

@@ -12,6 +12,7 @@ public class ExpenseMapper {
 
         return Expense.builder()
                 .id(dto.getId())
+                .name(dto.getName())
                 .tripId(dto.getTripId())
                 .amount(dto.getAmount())
                 .category(dto.getCategory())
@@ -19,6 +20,7 @@ public class ExpenseMapper {
                 .date(dto.getDate())
                 .payerId(dto.getPayerId())
                 .participantShares(dto.getParticipantShares())
+                .participantPaymentStatus(dto.getParticipantPaymentStatus())
                 .build();
     }
 
@@ -27,6 +29,7 @@ public class ExpenseMapper {
 
         return ExpenseDTO.builder()
                 .id(entity.getId())
+                .name(entity.getName())
                 .tripId(entity.getTripId())
                 .amount(entity.getAmount())
                 .category(entity.getCategory())
@@ -34,6 +37,7 @@ public class ExpenseMapper {
                 .date(entity.getDate())
                 .payerId(entity.getPayerId())
                 .participantShares(entity.getParticipantShares())
+                .participantPaymentStatus(entity.getParticipantPaymentStatus())
                 .build();
     }
 }
