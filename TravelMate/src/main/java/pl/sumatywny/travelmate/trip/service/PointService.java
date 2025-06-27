@@ -59,6 +59,12 @@ public class PointService {
         pointRepo.deleteById(pointId);
     }
 
+    public Point markVisited(UUID tripId, Long pointId) {
+        Point point = findById(tripId, pointId);
+        point.setVisited(true);
+        return pointRepo.save(point);
+    }
+
     private void verifyTripExists(UUID tripId) {  // Changed Long to UUID
         if (!tripRepo.existsById(tripId)) {
             throw new RuntimeException();

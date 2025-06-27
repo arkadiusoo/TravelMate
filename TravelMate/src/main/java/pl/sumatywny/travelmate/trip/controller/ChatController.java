@@ -7,25 +7,32 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pl.sumatywny.travelmate.trip.dto.ChatRequestDto;
 import pl.sumatywny.travelmate.trip.dto.PlaceVisitDto;
+import pl.sumatywny.travelmate.trip.model.Point;
 import pl.sumatywny.travelmate.trip.service.OpenAiService;
+import pl.sumatywny.travelmate.trip.service.PointService;
 
+import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/chat")
 @Tag(name = "Chat Assistant", description = "Interact with OpenAI to generate place visit suggestions")
 public class ChatController {
 
     private final OpenAiService openAiService;
+    private final PointService pointService;
 
     @Autowired
-    public ChatController(OpenAiService openAiService) {
+    public ChatController(OpenAiService openAiService, PointService pointService) {
         this.openAiService = openAiService;
+        this.pointService = pointService;
     }
 
     @Operation(
@@ -40,6 +47,16 @@ public class ChatController {
     @PostMapping
     public ResponseEntity<List<PlaceVisitDto>> ask(@RequestBody ChatRequestDto request) {
         List<PlaceVisitDto> response = openAiService.askChatGpt(request.getPrompt());
+        for (PlaceVisitDto placeVisitDto : response) {
+            Point point = Point.builder()
+                    .title(placeVisitDto.getName())
+                    .date(LocalDate.parse(placeVisitDto.getDate()))
+                    .description(placeVisitDto.getAddress())
+                    .latitude(placeVisitDto.getLat())
+                    .longitude(placeVisitDto.getLng())
+                    .visited(false).build();
+            pointService.create(request.getTripId(), point);
+        }
         return ResponseEntity.ok(response);
     }
 }
