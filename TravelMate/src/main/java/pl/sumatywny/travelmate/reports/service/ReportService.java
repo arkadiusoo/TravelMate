@@ -7,7 +7,9 @@ import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
 import pl.sumatywny.travelmate.reports.dto.NoteDTO;
 import pl.sumatywny.travelmate.reports.entity.Note;
 import pl.sumatywny.travelmate.reports.repository.NoteRepository;
+import pl.sumatywny.travelmate.trip.model.Point;
 import pl.sumatywny.travelmate.trip.model.Trip;
+import pl.sumatywny.travelmate.trip.repository.PointRepository;
 import pl.sumatywny.travelmate.trip.service.TripService;
 
 import java.time.LocalDate;
@@ -21,6 +23,7 @@ public class ReportService {
     NoteRepository noteRepository;
     TripService tripService;
     ParticipantRepository participantRepository;//temporary
+    PointRepository pointRepository;
 
     @Autowired
     public ReportService(NoteRepository noteRepository, TripService tripService, ParticipantRepository participantRepository) {
@@ -32,6 +35,16 @@ public class ReportService {
     public List<NoteDTO> getTripNotes(UUID tripId) {
         Trip trip = tripService.findById(tripId);
         List<Note> notes = noteRepository.getNotesByTrip(trip).stream().sorted(Comparator.comparing(Note::getDate)).toList();
+        return getNoteDTOS(notes);
+    }
+
+    public List<NoteDTO> getPointNotes(UUID poointId) {
+        Point point = pointRepository.getPointById(poointId);
+        List<Note> notes = noteRepository.getNotesByPoint(point).stream().sorted(Comparator.comparing(Note::getDate)).toList();
+        return getNoteDTOS(notes);
+    }
+
+    private List<NoteDTO> getNoteDTOS(List<Note> notes) {
         List<NoteDTO> noteDTOs = new LinkedList<>();
         for (Note note : notes) {
             NoteDTO noteDTO = NoteDTO.builder()
