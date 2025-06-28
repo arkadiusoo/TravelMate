@@ -25,8 +25,8 @@ public class ReportController {
     }
 
     @GetMapping(value = "/notes/point/{pointId}")
-    public ResponseEntity<List<NoteDTO>> getPointNotes(@PathVariable("pointId") UUID tripId) {
-        return ResponseEntity.ok(reportService.getTripNotes(tripId));
+    public ResponseEntity<List<NoteDTO>> getPointNotes(@PathVariable("pointId") Long pointId) {
+        return ResponseEntity.ok(reportService.getPointNotes(pointId));
     }
 
     @PostMapping(value = "/notes/add")

@@ -26,10 +26,14 @@ public class ReportService {
     PointRepository pointRepository;
 
     @Autowired
-    public ReportService(NoteRepository noteRepository, TripService tripService, ParticipantRepository participantRepository) {
+    public ReportService(NoteRepository noteRepository,
+                         TripService tripService,
+                         ParticipantRepository participantRepository,
+                         PointRepository pointRepository) {
         this.noteRepository = noteRepository;
         this.tripService = tripService;
         this.participantRepository = participantRepository;
+        this.pointRepository = pointRepository;
     }
 
     public List<NoteDTO> getTripNotes(UUID tripId) {
@@ -38,8 +42,8 @@ public class ReportService {
         return getNoteDTOS(notes);
     }
 
-    public List<NoteDTO> getPointNotes(UUID poointId) {
-        Point point = pointRepository.getPointById(poointId);
+    public List<NoteDTO> getPointNotes(Long pointId) {
+        Point point = pointRepository.getPointById(pointId);
         List<Note> notes = noteRepository.getNotesByPoint(point).stream().sorted(Comparator.comparing(Note::getDate)).toList();
         return getNoteDTOS(notes);
     }

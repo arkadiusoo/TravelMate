@@ -9,5 +9,5 @@ import java.util.UUID;
 public interface PointRepository extends JpaRepository<Point, Long> {
     List<Point> findByTripId(UUID tripId);  // Changed Long to UUID
 
-    Point getPointById(UUID poointId);
+    Point getPointById(Long id);
 }
