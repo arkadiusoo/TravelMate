@@ -31,7 +31,7 @@ public class ReportController {
 
     @PostMapping(value = "/notes/add")
     public ResponseEntity<String> addNote(@RequestParam UUID tripId, @RequestBody NoteDTO noteDTO) {
-        reportService.addNote(noteDTO.getAuthor(), noteDTO.getContent(), tripId, noteDTO.getPointID());
+        reportService.addNote(noteDTO.getAuthor(), noteDTO.getContent(), tripId, noteDTO.getPointId());
         return ResponseEntity.ok("Added note successfully");
     }
 

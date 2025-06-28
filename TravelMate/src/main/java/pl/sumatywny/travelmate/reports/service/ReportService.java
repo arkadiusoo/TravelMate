@@ -56,13 +56,14 @@ public class ReportService {
                     .date(note.getDate().atStartOfDay())
                     .author(note.getAuthor().getEmail())
                     .content(note.getContent())
+                    .pointName(pointRepository.getPointById(note.getPoint().getId()).getTitle())
                     .build();
             noteDTOs.add(noteDTO);
         }
         return noteDTOs;
     }
 
-    public void addNote(String author, String content, UUID tripId, UUID pointId) {
+    public void addNote(String author, String content, UUID tripId, Long pointId) {
         Trip trip = tripService.findById(tripId);
         Participant participant = participantRepository.getParticipantByEmail(author); // temporary
         LocalDate noteDate = LocalDate.now();
@@ -71,7 +72,7 @@ public class ReportService {
         newNote.setContent(content);
         newNote.setAuthor(participant);
         newNote.setTrip(trip);
-        newNote.setId(pointId);
+        newNote.setPoint(pointRepository.findById(pointId).get());
         noteRepository.save(newNote);
     }
 

@@ -24,9 +24,13 @@ public class NoteDTO {
     private LocalDateTime date;
 
     @Schema(
-            description = "Date of Note"
+            description = "Name of point"
     )
-    private UUID pointID;
+    private String pointName;
+    @Schema(
+            description = "point Id"
+    )
+    private Long pointId;
 
     @Schema(
             description = "Note content"
