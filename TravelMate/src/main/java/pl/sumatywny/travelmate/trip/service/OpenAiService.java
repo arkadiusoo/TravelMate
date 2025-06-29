@@ -50,6 +50,11 @@ Ważne:
 NIE CHCĘ NIC INNEGO W ODPOWIEDZI.
 """;
 
+    String systemPromptNote = """
+            Jesteś profesjonalnym przewodnikiem i redaktorem. Na podstawie poniższych notatek z różnych punktów wycieczki stwórz spójny, dobrze sformatowany raport z podróży. Raport powinien być napisany w pierwszej osobie liczby mnogiej (np. "odwiedziliśmy", "zobaczyliśmy", "podziwialiśmy") i podsumowywać każde z odwiedzonych miejsc na podstawie notatek. Zadbaj o płynne przejścia między akapitami oraz jednolity styl. Uwzględnij daty zwiedzania i nazwy miejsc. Nie dodawaj informacji spoza notatek.
+            Twoja odpowiedz ma zawierac tylko i wyłacznie tekst raportu
+            """;
+
     public OpenAiService(GooglePlacesService googlePlacesService) {
         this.googlePlacesService = googlePlacesService;
     }
@@ -140,5 +145,46 @@ NIE CHCĘ NIC INNEGO W ODPOWIEDZI.
             }
         }
         return result;
+    }
+
+    public String askChatGptNote(String userPrompt) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("model", "gpt-4o");
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of(
+                "role", "system",
+                "content", systemPromptNote
+        ));
+        messages.add(Map.of(
+                "role", "user",
+                "content", userPrompt
+        ));
+
+        body.put("messages", messages);
+
+        String response = webClient.post()
+                .uri("/chat/completions")
+                .header("Authorization", "Bearer " + apiKey)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode root = null;
+        try {
+            root = objectMapper.readTree(response);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        String contentJsonString = root
+                .path("choices")
+                .get(0)
+                .path("message")
+                .path("content")
+                .asText();
+
+        return contentJsonString;
     }
 }

@@ -53,3 +53,4 @@
 //                .andExpect(jsonPath("$[1].name").value("Rynek Główny"));
 //    }
 //}
+
