@@ -54,7 +54,6 @@ public class ReportService {
             NoteDTO noteDTO = NoteDTO.builder()
                     .id(note.getId())
                     .date(note.getDate().atStartOfDay())
-                    .author(note.getAuthor().getEmail())
                     .content(note.getContent())
                     .pointName(pointRepository.getPointById(note.getPoint().getId()).getTitle())
                     .build();
