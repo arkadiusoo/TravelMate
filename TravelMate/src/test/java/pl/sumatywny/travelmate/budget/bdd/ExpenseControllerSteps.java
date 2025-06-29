@@ -62,6 +62,20 @@ public class ExpenseControllerSteps {
     private ExpenseDTO sampleExpense;
     private MvcResult result;
     private ExpenseDTO requestDto;
+    // Stub for new description variable
+    private String newDescription;
+    @Given("I have an existing expense with id {string}")
+    public void i_have_an_existing_expense_with_id(String id) {
+        // Use placeholder or actual UUID
+        if (!id.startsWith("<")) {
+            expenseId = UUID.fromString(id);
+        }
+    }
+
+    @Given("I want to change its description to {string}")
+    public void i_want_to_change_its_description_to(String description) {
+        this.newDescription = description;
+    }
 
     @Before
     public void setup() {
@@ -172,6 +186,7 @@ public class ExpenseControllerSteps {
     }
 
     @Then("the JSON object should have a field {string} equal to {string}")
+    @Then("the JSON object should have {string} equal to {string}")
     public void the_json_object_should_have_field_equal(String field, String expected) throws Exception {
         String actual = objectMapper.readTree(result.getResponse().getContentAsString())
                                      .get(field).asText();
