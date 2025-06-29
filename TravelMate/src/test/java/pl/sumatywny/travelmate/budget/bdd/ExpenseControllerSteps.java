@@ -22,6 +22,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -123,10 +125,12 @@ public class ExpenseControllerSteps {
 
     @When("I PATCH {string} with:")
     public void i_patch_with(String urlTemplate, io.cucumber.datatable.DataTable table) throws Exception {
-        var updates = table.asMaps().get(0);
+        Map<String, String> stringUpdates = table.asMaps().get(0);
+        Map<String, Object> updates = new HashMap<>();
+        stringUpdates.forEach((k, v) -> updates.put(k, v));
         when(expenseService.patchExpense(eq(expenseId), eq(updates), eq(currentUserId)))
             .thenReturn(sampleExpense.toBuilder()  // jeżeli nie masz toBuilder, zbuduj ręcznie jak wcześniej
-                .description(updates.get("description"))
+                .description((String) updates.get("description"))
                 .build());
 
         String url = urlTemplate
