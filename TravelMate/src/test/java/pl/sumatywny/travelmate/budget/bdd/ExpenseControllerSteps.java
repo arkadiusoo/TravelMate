@@ -6,8 +6,10 @@ import io.cucumber.java.Before;
 import io.cucumber.java.en.*;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
+import pl.sumatywny.travelmate.budget.controller.ExpenseController;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -16,6 +18,7 @@ import pl.sumatywny.travelmate.budget.dto.ExpenseDTO;
 import pl.sumatywny.travelmate.budget.model.ExpenseCategory;
 import pl.sumatywny.travelmate.budget.service.ExpenseService;
 import pl.sumatywny.travelmate.security.service.UserService;
+import pl.sumatywny.travelmate.security.service.JwtService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -31,8 +33,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 @CucumberContextConfiguration
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(
+    controllers = ExpenseController.class,
+    excludeAutoConfiguration = {
+        SecurityAutoConfiguration.class,
+        SecurityFilterAutoConfiguration.class
+    }
+)
 public class ExpenseControllerSteps {
 
     @Autowired
@@ -44,6 +51,8 @@ public class ExpenseControllerSteps {
     private ExpenseService expenseService;
     @MockBean
     private UserService userService;
+    @MockBean
+    private JwtService jwtService;
 
     private UUID tripId;
     private UUID expenseId;
