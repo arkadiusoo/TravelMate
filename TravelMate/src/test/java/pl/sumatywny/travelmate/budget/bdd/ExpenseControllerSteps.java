@@ -133,7 +133,7 @@ public class ExpenseControllerSteps {
 
     @When("I GET {string}")
     public void i_get(String urlTemplate) throws Exception {
-        // podstawienie tripId i ewentualnie expenseId w URL
+
         String url = urlTemplate
             .replace("{tripId}", tripId.toString())
             .replace("{expenseId}", expenseId.toString())
@@ -160,7 +160,7 @@ public class ExpenseControllerSteps {
         Map<String, Object> updates = new HashMap<>();
         stringUpdates.forEach((k, v) -> updates.put(k, v));
         when(expenseService.patchExpense(eq(expenseId), eq(updates), eq(currentUserId)))
-            .thenReturn(sampleExpense.toBuilder()  // jeżeli nie masz toBuilder, zbuduj ręcznie jak wcześniej
+            .thenReturn(sampleExpense.toBuilder()
                 .description((String) updates.get("description"))
                 .build());
 
