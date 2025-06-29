@@ -2,9 +2,9 @@ package pl.sumatywny.travelmate.trip_test;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 import pl.sumatywny.travelmate.trip.model.Point;
 import pl.sumatywny.travelmate.trip.model.Trip;
 import pl.sumatywny.travelmate.trip.repository.PointRepository;
@@ -12,150 +12,200 @@ import pl.sumatywny.travelmate.trip.repository.TripRepository;
 import pl.sumatywny.travelmate.trip.service.PointService;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class PointServiceTest {
 
     @Mock
-    private PointRepository pointRepository;
+    private PointRepository pointRepo;
 
     @Mock
-    private TripRepository tripRepository;
+    private TripRepository tripRepo;
 
     @InjectMocks
-    private PointService pointService;
+    private PointService service;
 
+    private UUID tripId;
     private Trip trip;
     private Point point;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
+        tripId = UUID.randomUUID();
         trip = new Trip();
-        trip.setId(1L);
-        trip.setName("Trip to Spain");
+        trip.setId(tripId);
 
         point = new Point();
-        point.setId(10L);
-        point.setTitle("Sagrada Familia");
-        point.setDescription("Visit cathedral");
-        point.setLatitude(41.4036);
-        point.setLongitude(2.1744);
-        point.setDate(LocalDate.of(2025, 6, 20));
+        point.setId(1L);
         point.setTrip(trip);
+        point.setTitle("Old Title");
+        point.setDate(LocalDate.of(2025, 7, 1));
+        point.setDescription("Desc");
+        point.setLatitude(10.0);
+        point.setLongitude(20.0);
+        point.setVisited(false);
     }
 
     @Test
-    void shouldFindPointsByTripId() {
-        when(tripRepository.existsById(1L)).thenReturn(true);
-        when(pointRepository.findByTripId(1L)).thenReturn(List.of(point));
+    void findByTripId_whenTripExists_returnsPoints() {
+        List<Point> points = List.of(point);
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.findByTripId(tripId)).thenReturn(points);
 
-        List<Point> result = pointService.findByTripId(1L);
+        List<Point> result = service.findByTripId(tripId);
 
-        assertThat(result).containsExactly(point);
+        assertThat(result).isSameAs(points);
+        verify(tripRepo).existsById(tripId);
+        verify(pointRepo).findByTripId(tripId);
     }
 
     @Test
-    void shouldThrowWhenTripNotFoundInFindByTripId() {
-        when(tripRepository.existsById(1L)).thenReturn(false);
+    void findByTripId_whenTripNotExists_throws() {
+        when(tripRepo.existsById(tripId)).thenReturn(false);
 
-        assertThatThrownBy(() -> pointService.findByTripId(1L))
-                .isInstanceOf(RuntimeException.class);
+        assertThrows(RuntimeException.class, () -> service.findByTripId(tripId));
+        verify(tripRepo).existsById(tripId);
+        verifyNoMoreInteractions(pointRepo);
     }
 
     @Test
-    void shouldFindPointById() {
-        when(tripRepository.existsById(1L)).thenReturn(true);
-        when(pointRepository.findById(10L)).thenReturn(Optional.of(point));
+    void findById_whenTripExistsAndPointMatches_returnsPoint() {
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.findById(1L)).thenReturn(Optional.of(point));
 
-        Point result = pointService.findById(1L, 10L);
+        Point found = service.findById(tripId, 1L);
 
-        assertThat(result).isEqualTo(point);
+        assertThat(found).isSameAs(point);
+        verify(tripRepo).existsById(tripId);
+        verify(pointRepo).findById(1L);
     }
 
     @Test
-    void shouldThrowWhenPointNotBelongToTrip() {
-        Trip anotherTrip = new Trip();
-        anotherTrip.setId(2L);
-        point.setTrip(anotherTrip);
+    void findById_whenTripNotExists_throws() {
+        when(tripRepo.existsById(tripId)).thenReturn(false);
 
-        when(tripRepository.existsById(1L)).thenReturn(true);
-        when(pointRepository.findById(10L)).thenReturn(Optional.of(point));
-
-        assertThatThrownBy(() -> pointService.findById(1L, 10L))
-                .isInstanceOf(RuntimeException.class);
+        assertThrows(RuntimeException.class, () -> service.findById(tripId, 1L));
+        verify(tripRepo).existsById(tripId);
+        verifyNoMoreInteractions(pointRepo);
     }
 
     @Test
-    void shouldCreatePoint() {
-        when(tripRepository.findById(1L)).thenReturn(Optional.of(trip));
-        when(pointRepository.save(point)).thenReturn(point);
+    void findById_whenPointExistsButTripMismatch_throws() {
+        UUID otherTripId = UUID.randomUUID();
+        Trip otherTrip = new Trip();
+        otherTrip.setId(otherTripId);
+        point.setTrip(otherTrip);
 
-        Point result = pointService.create(1L, point);
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.findById(1L)).thenReturn(Optional.of(point));
 
-        assertThat(result).isEqualTo(point);
-        assertThat(result.getTrip()).isEqualTo(trip);
+        assertThrows(RuntimeException.class, () -> service.findById(tripId, 1L));
+        verify(pointRepo).findById(1L);
     }
 
     @Test
-    void shouldThrowWhenCreatingPointForMissingTrip() {
-        when(tripRepository.findById(1L)).thenReturn(Optional.empty());
+    void create_whenTripFound_savesAndReturnsPoint() {
+        Point toCreate = new Point();
+        toCreate.setTitle("New");
+        when(tripRepo.findById(tripId)).thenReturn(Optional.of(trip));
+        when(pointRepo.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThatThrownBy(() -> pointService.create(1L, point))
-                .isInstanceOf(RuntimeException.class);
+        Point created = service.create(tripId, toCreate);
+
+        assertThat(created.getTrip()).isSameAs(trip);
+        assertThat(created.getTitle()).isEqualTo("New");
+        verify(tripRepo).findById(tripId);
+        verify(pointRepo).save(toCreate);
     }
 
     @Test
-    void shouldUpdatePoint() {
-        Point updated = new Point();
-        updated.setTitle("New title");
-        updated.setDescription("New desc");
-        updated.setLatitude(50.0);
-        updated.setLongitude(19.0);
-        updated.setDate(LocalDate.of(2025, 7, 1));
-
-        when(tripRepository.existsById(1L)).thenReturn(true);
-        when(pointRepository.findById(10L)).thenReturn(Optional.of(point));
-        when(pointRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        Point result = pointService.update(1L, 10L, updated);
-
-        assertThat(result.getTitle()).isEqualTo("New title");
-        assertThat(result.getDescription()).isEqualTo("New desc");
-        assertThat(result.getLatitude()).isEqualTo(50.0);
-        assertThat(result.getLongitude()).isEqualTo(19.0);
-        assertThat(result.getDate()).isEqualTo(LocalDate.of(2025, 7, 1));
+    void create_whenTripNotFound_throws() {
+        when(tripRepo.findById(tripId)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> service.create(tripId, new Point()));
+        verify(tripRepo).findById(tripId);
+        verifyNoMoreInteractions(pointRepo);
     }
 
     @Test
-    void shouldDeletePoint() {
-        when(tripRepository.existsById(1L)).thenReturn(true);
-        when(pointRepository.existsById(10L)).thenReturn(true);
+    void update_whenExists_updatesFieldsAndSaves() {
+        Point updatedInfo = new Point();
+        updatedInfo.setTitle("New Title");
+        updatedInfo.setDate(LocalDate.of(2025, 7, 2));
+        updatedInfo.setDescription("New Desc");
+        updatedInfo.setLatitude(30.0);
+        updatedInfo.setLongitude(40.0);
 
-        pointService.delete(1L, 10L);
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.findById(1L)).thenReturn(Optional.of(point));
+        when(pointRepo.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        verify(pointRepository).deleteById(10L);
+        Point updated = service.update(tripId, 1L, updatedInfo);
+
+        assertThat(updated.getTitle()).isEqualTo("New Title");
+        assertThat(updated.getDate()).isEqualTo(LocalDate.of(2025, 7, 2));
+        assertThat(updated.getDescription()).isEqualTo("New Desc");
+        assertThat(updated.getLatitude()).isEqualTo(30.0);
+        assertThat(updated.getLongitude()).isEqualTo(40.0);
+        verify(pointRepo).save(point);
     }
 
     @Test
-    void shouldThrowWhenDeletingPointOfNonexistentTrip() {
-        when(tripRepository.existsById(1L)).thenReturn(false);
+    void update_whenPointNotFound_throws() {
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> pointService.delete(1L, 10L))
-                .isInstanceOf(RuntimeException.class);
+        assertThrows(RuntimeException.class, () -> service.update(tripId, 1L, new Point()));
     }
 
     @Test
-    void shouldThrowWhenDeletingNonexistentPoint() {
-        when(tripRepository.existsById(1L)).thenReturn(true);
-        when(pointRepository.existsById(10L)).thenReturn(false);
+    void delete_whenTripNotExists_throws() {
+        when(tripRepo.existsById(tripId)).thenReturn(false);
 
-        assertThatThrownBy(() -> pointService.delete(1L, 10L))
-                .isInstanceOf(RuntimeException.class);
+        assertThrows(RuntimeException.class, () -> service.delete(tripId, 1L));
+        verify(tripRepo).existsById(tripId);
+    }
+
+    @Test
+    void delete_whenPointNotExists_throws() {
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.existsById(1L)).thenReturn(false);
+
+        assertThrows(RuntimeException.class, () -> service.delete(tripId, 1L));
+        verify(pointRepo).existsById(1L);
+    }
+
+    @Test
+    void delete_whenExists_deletesPoint() {
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.existsById(1L)).thenReturn(true);
+
+        service.delete(tripId, 1L);
+
+        verify(pointRepo).deleteById(1L);
+    }
+
+    @Test
+    void markVisited_whenExists_setsVisitedAndSaves() {
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.findById(1L)).thenReturn(Optional.of(point));
+        when(pointRepo.save(any(Point.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Point visited = service.markVisited(tripId, 1L);
+
+        assertThat(visited.isVisited()).isTrue();
+        verify(pointRepo).save(point);
+    }
+
+    @Test
+    void markVisited_whenNotFound_throws() {
+        when(tripRepo.existsById(tripId)).thenReturn(true);
+        when(pointRepo.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> service.markVisited(tripId, 1L));
     }
 }
