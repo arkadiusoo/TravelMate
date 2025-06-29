@@ -1,4 +1,4 @@
-package pl.sumatywny.travelmate.budget_test;
+package pl.sumatywny.travelmate.budget_test.unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +11,9 @@ import pl.sumatywny.travelmate.budget.model.Expense;
 import pl.sumatywny.travelmate.budget.model.ExpenseCategory;
 import pl.sumatywny.travelmate.budget.repository.ExpenseRepository;
 import pl.sumatywny.travelmate.budget.service.ExpenseMapper;
+import pl.sumatywny.travelmate.security.service.UserService;
+import pl.sumatywny.travelmate.participant.service.TripPermissionService;
+import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 import pl.sumatywny.travelmate.budget.service.ExpenseService;
 import pl.sumatywny.travelmate.config.NotFoundException;
 
@@ -28,6 +31,12 @@ public class ExpenseServiceTest {
 
     @Mock
     private ExpenseMapper expenseMapper;
+
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private TripPermissionService permissionService;
 
     @InjectMocks
     private ExpenseService expenseService;
@@ -70,6 +79,7 @@ public class ExpenseServiceTest {
                 .payerId(userId)
                 .participantShares(shares)
                 .build();
+        when(permissionService.getUserRole(tripId, userId)).thenReturn(ParticipantRole.MEMBER);
     }
 
     @Test
@@ -88,7 +98,7 @@ public class ExpenseServiceTest {
         when(expenseRepository.save(expense)).thenReturn(expense);
         when(expenseMapper.toDTO(expense)).thenReturn(expenseDTO);
 
-        ExpenseDTO result = expenseService.addExpense(expenseDTO);
+        ExpenseDTO result = expenseService.addExpense(expenseDTO, userId);
 
         assertThat(result).isEqualTo(expenseDTO);
     }
@@ -99,18 +109,19 @@ public class ExpenseServiceTest {
         badShares.put(userId, BigDecimal.valueOf(0.5));
         expenseDTO.setParticipantShares(badShares);
 
-        assertThatThrownBy(() -> expenseService.addExpense(expenseDTO))
+        assertThatThrownBy(() -> expenseService.addExpense(expenseDTO, userId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Sum of participant shares must equal 1.0");
     }
 
     @Test
     void shouldDeleteExpenseById() {
-        UUID id = UUID.randomUUID();
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
+        when(permissionService.getUserRole(tripId, userId)).thenReturn(ParticipantRole.ORGANIZER);
 
-        expenseService.deleteExpense(id);
+        expenseService.deleteExpense(expenseId, userId);
 
-        verify(expenseRepository).deleteById(id);
+        verify(expenseRepository).deleteById(expenseId);
     }
 
     @Test
@@ -134,7 +145,7 @@ public class ExpenseServiceTest {
         when(expenseRepository.save(expense)).thenReturn(expense);
         when(expenseMapper.toDTO(expense)).thenReturn(expenseDTO);
 
-        ExpenseDTO updated = expenseService.updateExpense(expenseId, expenseDTO);
+        ExpenseDTO updated = expenseService.updateExpense(expenseId, expenseDTO, userId);
 
         assertThat(updated).isEqualTo(expenseDTO);
     }
@@ -170,7 +181,7 @@ void shouldPatchExpenseFields() {
     updates.put("date", newDate.toString());
     updates.put("payerId", newPayerId.toString());
 
-    ExpenseDTO result = expenseService.patchExpense(expenseId, updates);
+    ExpenseDTO result = expenseService.patchExpense(expenseId, updates, userId);
 
     assertThat(result).isNotNull();
     assertThat(result.getDescription()).isEqualTo("Updated Description");
@@ -187,7 +198,7 @@ void shouldPatchExpenseFields() {
                 "participantShares", Map.of(userId.toString(), 0.5)
         );
 
-        assertThatThrownBy(() -> expenseService.patchExpense(expenseId, updates))
+        assertThatThrownBy(() -> expenseService.patchExpense(expenseId, updates, userId))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Sum of participant shares must equal 1.0");
     }
@@ -196,7 +207,7 @@ void shouldPatchExpenseFields() {
     void shouldThrowWhenExpenseNotFound() {
         when(expenseRepository.findById(expenseId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> expenseService.updateExpense(expenseId, expenseDTO))
+        assertThatThrownBy(() -> expenseService.updateExpense(expenseId, expenseDTO, userId))
                 .isInstanceOf(NotFoundException.class);
     }
     @Test
@@ -205,7 +216,7 @@ void shouldPatchExpenseFields() {
 
         Map<String, Object> updates = Map.of("description", "New Desc");
 
-        assertThatThrownBy(() -> expenseService.patchExpense(expenseId, updates))
+        assertThatThrownBy(() -> expenseService.patchExpense(expenseId, updates, userId))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Expense not found");
     }

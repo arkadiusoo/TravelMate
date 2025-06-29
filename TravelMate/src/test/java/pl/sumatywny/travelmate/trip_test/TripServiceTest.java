@@ -2,7 +2,10 @@ package pl.sumatywny.travelmate.trip_test;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import pl.sumatywny.travelmate.participant.dto.ParticipantDTO;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import pl.sumatywny.travelmate.participant.model.InvitationStatus;
 import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
@@ -15,139 +18,165 @@ import pl.sumatywny.travelmate.trip.service.TripService;
 import java.time.LocalDate;
 import java.util.*;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TripServiceTest {
 
+    @Mock
     private TripRepository tripRepo;
+
+    @Mock
     private ParticipantRepository participantRepo;
+
+    @Mock
     private UserService userService;
+
+    @Mock
     private ParticipantService participantService;
+
+    @InjectMocks
     private TripService tripService;
 
     private UUID tripId;
-    private UUID userId;
-    private Trip sampleTrip;
+    private Trip trip;
 
     @BeforeEach
     void setUp() {
-        tripRepo = mock(TripRepository.class);
-        participantRepo = mock(ParticipantRepository.class);
-        userService = mock(UserService.class);
-        participantService = mock(ParticipantService.class);
-        tripService = new TripService(tripRepo, participantRepo, userService, participantService);
-
         tripId = UUID.randomUUID();
-        userId = UUID.randomUUID();
-
-        sampleTrip = new Trip();
-        sampleTrip.setId(tripId);
-        sampleTrip.setName("Sample Trip");
-        sampleTrip.setStartDate(LocalDate.of(2025, 7, 1));
-        sampleTrip.setEndDate(LocalDate.of(2025, 7, 10));
+        trip = new Trip();
+        trip.setId(tripId);
+        trip.setName("Test Trip");
+        trip.setStartDate(LocalDate.of(2025, 7, 1));
+        trip.setEndDate(LocalDate.of(2025, 7, 10));
     }
 
     @Test
-    void shouldFindAllTrips() {
-        when(tripRepo.findAll()).thenReturn(List.of(sampleTrip));
+    void findAll_returnsListOfTrips() {
+        List<Trip> expected = Collections.singletonList(trip);
+        when(tripRepo.findAll()).thenReturn(expected);
 
-        List<Trip> trips = tripService.findAll();
-
-        assertThat(trips).hasSize(1).contains(sampleTrip);
+        List<Trip> actual = tripService.findAll();
+        assertEquals(expected, actual);
+        verify(tripRepo, times(1)).findAll();
     }
 
     @Test
-    void shouldFindTripById() {
-        when(tripRepo.findById(tripId)).thenReturn(Optional.of(sampleTrip));
+    void findById_existingId_returnsTrip() {
+        when(tripRepo.findById(tripId)).thenReturn(Optional.of(trip));
 
-        Trip result = tripService.findById(tripId);
-
-        assertThat(result).isEqualTo(sampleTrip);
+        Trip found = tripService.findById(tripId);
+        assertEquals(trip, found);
+        verify(tripRepo).findById(tripId);
     }
 
     @Test
-    void shouldThrowWhenTripNotFound() {
+    void findById_nonExistingId_throwsException() {
         when(tripRepo.findById(tripId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> tripService.findById(tripId))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Trip not found");
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> tripService.findById(tripId));
+        assertEquals("Trip not found", ex.getMessage());
+        verify(tripRepo).findById(tripId);
     }
 
     @Test
-    void shouldCreateTripAndAddOrganizerParticipant() {
-        when(userService.findById(userId)).thenReturn(null); // doesn't matter, only checks if call doesn't throw
-        when(tripRepo.save(any())).thenReturn(sampleTrip);
+    void create_savesTripAndAddsCreatorAsParticipant() {
+        UUID creatorId = UUID.randomUUID();
+        Trip unsaved = new Trip();
+        unsaved.setName("New Trip");
+        unsaved.setStartDate(LocalDate.of(2025, 8, 1));
+        unsaved.setEndDate(LocalDate.of(2025, 8, 5));
+        Trip saved = new Trip();
+        saved.setId(tripId);
+        saved.setName(unsaved.getName());
+        saved.setStartDate(unsaved.getStartDate());
+        saved.setEndDate(unsaved.getEndDate());
 
-        Trip created = tripService.create(sampleTrip, userId);
+        when(userService.findById(creatorId)).thenReturn(null);
+        when(tripRepo.save(unsaved)).thenReturn(saved);
 
-        assertThat(created).isEqualTo(sampleTrip);
+        Trip result = tripService.create(unsaved, creatorId);
+        assertEquals(saved, result);
 
-        verify(participantService).addParticipant(argThat(dto ->
-                dto.getTripId().equals(tripId) &&
-                        dto.getUserId().equals(userId) &&
-                        dto.getRole() == ParticipantRole.ORGANIZER &&
-                        dto.getStatus() == InvitationStatus.ACCEPTED
-        ), eq(userId));
+        verify(userService).findById(creatorId);
+        verify(tripRepo).save(unsaved);
+        verify(participantService).addParticipant(
+                argThat(dto -> dto.getTripId().equals(tripId)
+                        && dto.getUserId().equals(creatorId)
+                        && dto.getRole() == ParticipantRole.ORGANIZER
+                        && dto.getStatus() == InvitationStatus.ACCEPTED),
+                eq(creatorId)
+        );
     }
 
     @Test
-    void shouldUpdateTripFields() {
-        Trip updated = new Trip();
-        updated.setName("Updated Trip");
-        updated.setStartDate(LocalDate.of(2025, 7, 5));
-        updated.setEndDate(LocalDate.of(2025, 7, 15));
+    void update_existingTrip_updatesFields() {
+        Trip updatedInfo = new Trip();
+        updatedInfo.setName("Updated Trip");
+        updatedInfo.setStartDate(LocalDate.of(2025, 9, 1));
+        updatedInfo.setEndDate(LocalDate.of(2025, 9, 10));
 
-        when(tripRepo.findById(tripId)).thenReturn(Optional.of(sampleTrip));
-        when(tripRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(tripRepo.findById(tripId)).thenReturn(Optional.of(trip));
+        when(tripRepo.save(any(Trip.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Trip result = tripService.update(tripId, updated);
+        Trip result = tripService.update(tripId, updatedInfo);
+        assertEquals("Updated Trip", result.getName());
+        assertEquals(LocalDate.of(2025, 9, 1), result.getStartDate());
+        assertEquals(LocalDate.of(2025, 9, 10), result.getEndDate());
 
-        assertThat(result.getName()).isEqualTo("Updated Trip");
-        assertThat(result.getStartDate()).isEqualTo(updated.getStartDate());
-        assertThat(result.getEndDate()).isEqualTo(updated.getEndDate());
+        verify(tripRepo).findById(tripId);
+        verify(tripRepo).save(trip);
     }
 
     @Test
-    void shouldDeleteTrip() {
+    void delete_existingId_deletesTrip() {
         when(tripRepo.existsById(tripId)).thenReturn(true);
 
         tripService.delete(tripId);
 
+        verify(tripRepo).existsById(tripId);
         verify(tripRepo).deleteById(tripId);
     }
 
     @Test
-    void shouldThrowOnDeleteIfTripNotExist() {
+    void delete_nonExistingId_throwsException() {
         when(tripRepo.existsById(tripId)).thenReturn(false);
 
-        assertThatThrownBy(() -> tripService.delete(tripId))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Trip not found");
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> tripService.delete(tripId));
+        assertEquals("Trip not found", ex.getMessage());
+
+        verify(tripRepo).existsById(tripId);
+        verify(tripRepo, never()).deleteById(any());
     }
 
     @Test
-    void shouldReturnTrueIfUserCanAccessTrip() {
+    void canUserAccessTrip_returnsTrueIfExists() {
+        UUID userId = UUID.randomUUID();
         when(participantRepo.existsByTripIdAndUserId(tripId, userId)).thenReturn(true);
 
-        assertThat(tripService.canUserAccessTrip(tripId, userId)).isTrue();
+        assertTrue(tripService.canUserAccessTrip(tripId, userId));
+        verify(participantRepo).existsByTripIdAndUserId(tripId, userId);
     }
 
     @Test
-    void shouldReturnFalseIfUserCannotAccessTrip() {
+    void canUserAccessTrip_returnsFalseIfNotExists() {
+        UUID userId = UUID.randomUUID();
         when(participantRepo.existsByTripIdAndUserId(tripId, userId)).thenReturn(false);
 
-        assertThat(tripService.canUserAccessTrip(tripId, userId)).isFalse();
+        assertFalse(tripService.canUserAccessTrip(tripId, userId));
+        verify(participantRepo).existsByTripIdAndUserId(tripId, userId);
     }
 
     @Test
-    void shouldFindTripsByUserId() {
-        when(tripRepo.findTripsByParticipantUserId(userId)).thenReturn(List.of(sampleTrip));
+    void findTripsByUserId_returnsTripsList() {
+        UUID userId = UUID.randomUUID();
+        List<Trip> expected = Collections.singletonList(trip);
+        when(tripRepo.findTripsByParticipantUserId(userId)).thenReturn(expected);
 
-        List<Trip> result = tripService.findTripsByUserId(userId);
-
-        assertThat(result).containsExactly(sampleTrip);
+        List<Trip> actual = tripService.findTripsByUserId(userId);
+        assertEquals(expected, actual);
+        verify(tripRepo).findTripsByParticipantUserId(userId);
     }
 }

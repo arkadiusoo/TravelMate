@@ -1,4 +1,4 @@
-package pl.sumatywny.travelmate.budget_test;
+package pl.sumatywny.travelmate.budget_test.unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

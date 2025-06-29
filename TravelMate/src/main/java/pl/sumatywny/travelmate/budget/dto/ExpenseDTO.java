@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "Data transfer object representing a single trip expense")

@@ -27,7 +27,7 @@ public class Note {
 
     @ManyToOne
     private Trip trip;
-    @OneToOne
+    @ManyToOne
     private Point point;
 
 }

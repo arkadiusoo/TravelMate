@@ -21,14 +21,14 @@ public class TripService {
     private final TripRepository tripRepo;
     private final ParticipantRepository participantRepo;
     private final UserService userService;
-    private final ParticipantService participantService;  // ✅ Added for email resolution
+    private final ParticipantService participantService;
 
     public TripService(TripRepository tripRepo, ParticipantRepository participantRepo,
                        UserService userService, ParticipantService participantService) {
         this.tripRepo = tripRepo;
         this.participantRepo = participantRepo;
         this.userService = userService;
-        this.participantService = participantService;  // ✅ Added dependency
+        this.participantService = participantService;
     }
 
     public List<Trip> findAll() {
@@ -40,12 +40,10 @@ public class TripService {
     }
 
     public Trip create(Trip trip, UUID creatorUserId) {
-        // Verify the user exists before creating the trip
-        userService.findById(creatorUserId);  // This will throw if user doesn't exist
+        userService.findById(creatorUserId);
 
         Trip savedTrip = tripRepo.save(trip);
 
-        // ✅ FIXED: Use ParticipantService to properly set email
         ParticipantDTO creatorDTO = ParticipantDTO.builder()
                 .tripId(savedTrip.getId())
                 .userId(creatorUserId)
@@ -53,7 +51,6 @@ public class TripService {
                 .status(InvitationStatus.ACCEPTED)
                 .build();
 
-        // This will automatically resolve and set the email
         participantService.addParticipant(creatorDTO, creatorUserId);
 
         return savedTrip;
@@ -74,22 +71,10 @@ public class TripService {
         tripRepo.deleteById(id);
     }
 
-    /**
-     * ✅ NEW: Check if a user can access a specific trip
-     * Only participants (any status) can access trip data
-     * @param tripId The trip to check access for
-     * @param userId The user requesting access
-     * @return true if user can access the trip, false otherwise
-     */
     public boolean canUserAccessTrip(UUID tripId, UUID userId) {
         return participantRepo.existsByTripIdAndUserId(tripId, userId);
     }
 
-    /**
-     * ✅ NEW: Get trips where user is a participant
-     * @param userId The user ID to search for
-     * @return List of trips where the user is a participant
-     */
     public List<Trip> findTripsByUserId(UUID userId) {
         return tripRepo.findTripsByParticipantUserId(userId);
     }

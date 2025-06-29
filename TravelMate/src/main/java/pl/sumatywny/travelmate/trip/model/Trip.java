@@ -18,7 +18,7 @@ public class Trip {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    private UUID id;  // Changed from Long to UUID
+    private UUID id;
 
     private String name;
     private LocalDate startDate;
