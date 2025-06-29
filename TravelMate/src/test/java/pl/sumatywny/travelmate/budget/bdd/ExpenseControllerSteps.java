@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.*;
+import io.cucumber.datatable.DataTable;
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -60,6 +61,7 @@ public class ExpenseControllerSteps {
     private UUID currentUserId;
     private ExpenseDTO sampleExpense;
     private MvcResult result;
+    private ExpenseDTO requestDto;
 
     @Before
     public void setup() {
@@ -96,6 +98,25 @@ public class ExpenseControllerSteps {
             .thenReturn(List.of(sampleExpense));
     }
 
+    @Given("the following expense payload:")
+    public void the_following_expense_payload(DataTable table) {
+        Map<String, String> map = table.asMaps().get(0);
+        requestDto = new ExpenseDTO();
+        requestDto.setName(map.get("name"));
+        requestDto.setAmount(new BigDecimal(map.get("amount")));
+        requestDto.setCategory(ExpenseCategory.valueOf(map.get("category")));
+        requestDto.setDescription(map.get("description"));
+        requestDto.setDate(LocalDate.parse(map.get("date")));
+        String payerIdStr = map.get("payerId");
+        if (payerIdStr.startsWith("<") && payerIdStr.endsWith(">")) {
+            payerIdStr = payerId.toString();
+        }
+        requestDto.setPayerId(UUID.fromString(payerIdStr));
+        requestDto.setParticipantShares(Map.of(payerId, new BigDecimal("1.0")));
+        requestDto.setParticipantPaymentStatus(Map.of(payerId, true));
+        requestDto.setParticipantNames(List.of("Alice"));
+    }
+
     @When("I GET {string}")
     public void i_get(String urlTemplate) throws Exception {
         // podstawienie tripId i ewentualnie expenseId w URL
@@ -108,27 +129,14 @@ public class ExpenseControllerSteps {
     }
 
     @When("I POST {string} with that payload")
-    public void i_post_with_that_payload(String urlTemplate, io.cucumber.datatable.DataTable table) throws Exception {
-        var map = table.asMaps().get(0);
-        ExpenseDTO dto = ExpenseDTO.builder()
-            .name(map.get("name"))
-            .amount(new BigDecimal(map.get("amount")))
-            .category(ExpenseCategory.valueOf(map.get("category")))
-            .description(map.get("description"))
-            .date(LocalDate.parse(map.get("date")))
-            .payerId(UUID.fromString(map.get("payerId")))
-            .participantShares(Map.of(payerId, new BigDecimal("1.0")))
-            .participantPaymentStatus(Map.of(payerId, true))
-            .participantNames(List.of("Alice"))
-            .build();
-
+    public void i_post_with_that_payload(String urlTemplate) throws Exception {
         when(expenseService.addExpense(any(), eq(currentUserId)))
             .thenReturn(sampleExpense);
 
         String url = urlTemplate.replace("{tripId}", tripId.toString());
         result = mockMvc.perform(post(url)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
+                .content(objectMapper.writeValueAsString(requestDto)))
             .andReturn();
     }
 
