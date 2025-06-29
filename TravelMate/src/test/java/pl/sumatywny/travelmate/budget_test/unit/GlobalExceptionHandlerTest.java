@@ -74,6 +74,6 @@ public class GlobalExceptionHandlerTest {
         ResponseEntity<Map<String, String>> response = handler.handleNotFound(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).containsEntry("error", "Resource not found");
+        assertThat(response.getBody()).containsEntry("message", "Resource not found");
     }
 }
