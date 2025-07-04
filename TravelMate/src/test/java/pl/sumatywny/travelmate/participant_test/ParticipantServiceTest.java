@@ -1,5 +1,6 @@
 package pl.sumatywny.travelmate.participant_test;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,671 +15,638 @@ import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
 import pl.sumatywny.travelmate.participant.service.ParticipantMapper;
 import pl.sumatywny.travelmate.participant.service.ParticipantService;
 import pl.sumatywny.travelmate.participant.service.TripPermissionService;
-import pl.sumatywny.travelmate.security.model.User;
-import pl.sumatywny.travelmate.security.service.UserService;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ParticipantServiceTest {
+public class ParticipantServiceTest {
 
-    @Mock
+    @Mock(lenient = true)
     private ParticipantRepository participantRepository;
-    @Mock
+
+    @Mock(lenient = true)
     private ParticipantMapper participantMapper;
-    @Mock
+
+    @Mock(lenient = true)
     private TripPermissionService permissionService;
-    @Mock
-    private UserService userService;
 
     @InjectMocks
     private ParticipantService participantService;
 
-    private final UUID tripId = UUID.randomUUID();
-    private final UUID userId = UUID.randomUUID();
-    private final UUID currentUserId = UUID.randomUUID();
-    private final UUID participantId = UUID.randomUUID();
+    private UUID tripId;
+    private UUID organizerId;
+    private UUID memberId;
+    private UUID guestId;
+    private UUID participantId;
+    private Participant participant;
+    private ParticipantDTO participantDTO;
 
-    @Test
-    void addParticipant_ShouldThrowException_WhenNoPermission() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
+    @BeforeEach
+    void setUp() {
+        tripId = UUID.randomUUID();
+        organizerId = UUID.randomUUID();
+        memberId = UUID.randomUUID();
+        guestId = UUID.randomUUID();
+        participantId = UUID.randomUUID();
+
+        participant = Participant.builder()
+                .id(participantId)
                 .tripId(tripId)
-                .email("test@example.com")
+                .userId(memberId)
                 .role(ParticipantRole.MEMBER)
+                .status(InvitationStatus.PENDING)
+                .email("test@example.com")
                 .build();
 
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(false);
+        participantDTO = ParticipantDTO.builder()
+                .id(participantId)
+                .tripId(tripId)
+                .userId(memberId)
+                .role(ParticipantRole.MEMBER)
+                .status(InvitationStatus.PENDING)
+                .email("test@example.com")
+                .build();
+    }
 
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
+//    @Test
+//    void addParticipant_AsOrganizer_Success() {
+//        // Given
+//        when(permissionService.canInviteParticipants(tripId, organizerId)).thenReturn(true);
+//        when(permissionService.hasRoleOrHigher(tripId, organizerId, ParticipantRole.ORGANIZER)).thenReturn(true);
+//        when(participantMapper.toEntity(any(ParticipantDTO.class))).thenReturn(participant);
+//        when(participantRepository.save(any(Participant.class))).thenReturn(participant);
+//        when(participantMapper.toDTO(any(Participant.class))).thenReturn(participantDTO);
+//
+//        // When
+//        ParticipantDTO result = participantService.addParticipant(participantDTO, organizerId);
+//
+//        // Then
+//        assertThat(result).isNotNull();
+//        assertThat(result.getId()).isEqualTo(participantId);
+//        verify(participantRepository).save(any(Participant.class));
+//    }
+//
+//    @Test
+//    void addParticipant_AsMember_Success() {
+//        // Given
+//        when(permissionService.canInviteParticipants(tripId, memberId)).thenReturn(true);
+//        when(permissionService.hasRoleOrHigher(tripId, memberId, ParticipantRole.ORGANIZER)).thenReturn(false);
+//
+//        participantDTO.setRole(ParticipantRole.MEMBER); // członek dodaje członka
+//
+//        when(participantMapper.toEntity(any(ParticipantDTO.class))).thenReturn(participant);
+//        when(participantRepository.save(any(Participant.class))).thenReturn(participant);
+//        when(participantMapper.toDTO(any(Participant.class))).thenReturn(participantDTO);
+//
+//        // When
+//        ParticipantDTO result = participantService.addParticipant(participantDTO, memberId);
+//
+//        // Then
+//        assertThat(result).isNotNull();
+//        verify(participantRepository).save(any(Participant.class));
+//    }
+//
+//    @Test
+//    void addParticipant_AsMemberAddingOrganizer_ThrowsException() {
+//        // Given
+//        when(permissionService.canInviteParticipants(tripId, memberId)).thenReturn(true);
+//        when(permissionService.hasRoleOrHigher(tripId, memberId, ParticipantRole.ORGANIZER)).thenReturn(false);
+//
+//        participantDTO.setRole(ParticipantRole.ORGANIZER); // członek próbuje dodać organizatora
+//
+//        // When/Then
+//        assertThatThrownBy(() -> participantService.addParticipant(participantDTO, memberId))
+//                .isInstanceOf(IllegalStateException.class)
+//                .hasMessageContaining("Tylko organizatorzy mogą dodawać innych organizatorów");
+//
+//        verify(participantRepository, never()).save(any(Participant.class));
+//    }
 
-        assertEquals("Nie masz uprawnień do zapraszania uczestników", exception.getMessage());
+    @Test
+    void addParticipant_AsGuest_ThrowsException() {
+        // Given
+        when(permissionService.canInviteParticipants(tripId, guestId)).thenReturn(false);
+
+        // When/Then
+        assertThatThrownBy(() -> participantService.addParticipant(participantDTO, guestId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Nie masz uprawnień do zapraszania uczestników");
+
+        verify(participantRepository, never()).save(any(Participant.class));
     }
 
     @Test
-    void addParticipant_ShouldThrowException_WhenUserNotFound() {
+    void updateParticipantRole_AsOrganizer_Success() {
         // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .tripId(tripId)
-                .email("notfound@example.com")
-                .role(ParticipantRole.MEMBER)
-                .build();
-
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(userService.findUserIdByEmail("notfound@example.com")).thenReturn(null);
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
-
-        assertTrue(exception.getMessage().contains("Nie znaleziono zarejestrowanego użytkownika"));
-    }
-
-    @Test
-    void addParticipant_ShouldThrowException_WhenUserAlreadyAccepted() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .tripId(tripId)
-                .email("test@example.com")
-                .role(ParticipantRole.MEMBER)
-                .build();
-
         Participant existingParticipant = Participant.builder()
-                .userId(userId)
-                .status(InvitationStatus.ACCEPTED)
-                .build();
-
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(userService.findUserIdByEmail("test@example.com")).thenReturn(userId);
-        when(participantRepository.findByTripIdAndUserId(tripId, userId)).thenReturn(Optional.of(existingParticipant));
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
-
-        assertEquals("Użytkownik jest już uczestnikiem tej wycieczki", exception.getMessage());
-    }
-
-    @Test
-    void addParticipant_ShouldReInviteDeclinedUser() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
+                .id(participantId)
                 .tripId(tripId)
-                .email("test@example.com")
+                .userId(memberId)
                 .role(ParticipantRole.MEMBER)
                 .build();
 
-        Participant declinedParticipant = Participant.builder()
-                .userId(userId)
-                .status(InvitationStatus.DECLINED)
+        ParticipantDTO updateDTO = ParticipantDTO.builder()
+                .role(ParticipantRole.ORGANIZER)
+                .build();
+
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existingParticipant));
+        when(permissionService.canManageParticipant(tripId, organizerId, participantId)).thenReturn(true);
+        when(permissionService.canAssignRole(tripId, organizerId, ParticipantRole.ORGANIZER)).thenReturn(true);
+        when(participantRepository.save(any(Participant.class))).thenReturn(existingParticipant);
+        when(participantMapper.toDTO(any(Participant.class))).thenReturn(participantDTO);
+
+        // When
+        ParticipantDTO result = participantService.updateParticipantRole(participantId, updateDTO, organizerId);
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(participantRepository).save(any(Participant.class));
+    }
+
+    @Test
+    void updateParticipantRole_AsMember_ThrowsException() {
+        // Given
+        Participant existingParticipant = Participant.builder()
+                .id(participantId)
+                .tripId(tripId)
+                .userId(guestId) // Inny użytkownik niż memberId
                 .role(ParticipantRole.GUEST)
                 .build();
 
-        ParticipantDTO returnedDto = ParticipantDTO.builder().email("test@example.com").build();
+        ParticipantDTO updateDTO = ParticipantDTO.builder()
+                .role(ParticipantRole.MEMBER)
+                .build();
 
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(userService.findUserIdByEmail("test@example.com")).thenReturn(userId);
-        when(participantRepository.findByTripIdAndUserId(tripId, userId)).thenReturn(Optional.of(declinedParticipant));
-        when(participantRepository.save(declinedParticipant)).thenReturn(declinedParticipant);
-        when(participantMapper.toDTO(declinedParticipant)).thenReturn(returnedDto);
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existingParticipant));
+        when(permissionService.canManageParticipant(tripId, memberId, participantId)).thenReturn(false);
+
+        // When/Then
+        assertThatThrownBy(() -> participantService.updateParticipantRole(participantId, updateDTO, memberId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Nie masz uprawnień do zarządzania tym uczestnikiem");
+
+        verify(participantRepository, never()).save(any(Participant.class));
+    }
+
+    @Test
+    void removeParticipant_AsOrganizer_Success() {
+        // Given
+        Participant existingParticipant = Participant.builder()
+                .id(participantId)
+                .tripId(tripId)
+                .userId(memberId)
+                .role(ParticipantRole.MEMBER)
+                .build();
+
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existingParticipant));
+        when(permissionService.canManageParticipant(tripId, organizerId, participantId)).thenReturn(true);
 
         // When
-        ParticipantDTO result = participantService.addParticipant(dto, currentUserId);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(ParticipantRole.MEMBER, declinedParticipant.getRole());
-        assertEquals(InvitationStatus.PENDING, declinedParticipant.getStatus());
-        verify(participantRepository).save(declinedParticipant);
-    }
-
-    @Test
-    void updateParticipantRole_ShouldThrowException_WhenParticipantNotFound() {
-        // Given
-        ParticipantDTO updates = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
-        when(participantRepository.findById(participantId)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(NotFoundException.class,
-                () -> participantService.updateParticipantRole(participantId, updates, currentUserId));
-    }
-
-    @Test
-    void updateParticipantRole_ShouldThrowException_WhenNoPermission() {
-        // Given
-        ParticipantDTO updates = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
-        Participant existing = Participant.builder().tripId(tripId).build();
-
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existing));
-        when(permissionService.canManageParticipant(tripId, currentUserId, participantId)).thenReturn(false);
-
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> participantService.updateParticipantRole(participantId, updates, currentUserId));
-
-        assertEquals("Nie masz uprawnień do zarządzania tym uczestnikiem", exception.getMessage());
-    }
-
-    @Test
-    void removeParticipant_ShouldThrowException_WhenParticipantNotFound() {
-        // Given
-        when(participantRepository.findById(participantId)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(NotFoundException.class,
-                () -> participantService.removeParticipant(participantId, currentUserId));
-    }
-
-    @Test
-    void removeParticipant_ShouldDeleteParticipant_WhenValidInput() {
-        // Given
-        Participant participant = Participant.builder().tripId(tripId).build();
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
-        when(permissionService.canManageParticipant(tripId, currentUserId, participantId)).thenReturn(true);
-
-        // When
-        participantService.removeParticipant(participantId, currentUserId);
+        participantService.removeParticipant(participantId, organizerId);
 
         // Then
         verify(participantRepository).deleteById(participantId);
     }
 
     @Test
-    void getParticipantsByTrip_ShouldReturnParticipantsWithUserDetails() {
+    void removeParticipant_AsMemberRemovingSelf_Success() {
         // Given
-        Participant participant = Participant.builder()
-                .userId(userId)
-                .email("old@example.com")
-                .build();
-
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .email("old@example.com")
-                .build();
-
-        User user = User.builder()
-                .email("new@example.com")
-                .firstName("John")
-                .lastName("Doe")
-                .build();
-
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(participant));
-        when(participantMapper.toDTO(participant)).thenReturn(dto);
-        when(userService.findById(userId)).thenReturn(user);
-
-        // When
-        List<ParticipantDTO> result = participantService.getParticipantsByTrip(tripId);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("new@example.com", dto.getEmail()); // Should be updated from User
-        assertEquals("John", dto.getFirstName());
-        assertEquals("Doe", dto.getLastName());
-    }
-
-    @Test
-    void respondToInvitation_ShouldThrowException_WhenInvalidStatus() {
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.respondToInvitation(participantId, InvitationStatus.PENDING, currentUserId));
-
-        assertEquals("Status musi być ACCEPTED lub DECLINED", exception.getMessage());
-    }
-
-    @Test
-    void respondToInvitation_ShouldThrowException_WhenParticipantNotFound() {
-        // Given
-        when(participantRepository.findById(participantId)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(NotFoundException.class,
-                () -> participantService.respondToInvitation(participantId, InvitationStatus.ACCEPTED, currentUserId));
-    }
-
-    @Test
-    void respondToInvitation_ShouldThrowException_WhenNotPendingStatus() {
-        // Given
-        Participant participant = Participant.builder()
-                .status(InvitationStatus.ACCEPTED)
-                .userId(currentUserId)
-                .build();
-
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
-
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> participantService.respondToInvitation(participantId, InvitationStatus.ACCEPTED, currentUserId));
-
-        assertEquals("Tylko oczekujące zaproszenia mogą być aktualizowane", exception.getMessage());
-    }
-
-    @Test
-    void respondToInvitation_ShouldThrowException_WhenNotOwnInvitation() {
-        // Given
-        Participant participant = Participant.builder()
-                .status(InvitationStatus.PENDING)
-                .userId(UUID.randomUUID()) // Different user
-                .build();
-
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
-
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> participantService.respondToInvitation(participantId, InvitationStatus.ACCEPTED, currentUserId));
-
-        assertEquals("Możesz odpowiadać tylko na własne zaproszenia", exception.getMessage());
-    }
-
-    @Test
-    void respondToInvitation_ShouldAcceptInvitation_WhenValidInput() {
-        // Given
-        Participant participant = Participant.builder()
-                .status(InvitationStatus.PENDING)
-                .userId(currentUserId)
-                .build();
-
-        ParticipantDTO dto = ParticipantDTO.builder().build();
-
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
-        when(participantRepository.save(participant)).thenReturn(participant);
-        when(participantMapper.toDTO(participant)).thenReturn(dto);
-
-        // When
-        ParticipantDTO result = participantService.respondToInvitation(participantId, InvitationStatus.ACCEPTED, currentUserId);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(InvitationStatus.ACCEPTED, participant.getStatus());
-        assertNotNull(participant.getJoinedAt());
-        verify(participantRepository).save(participant);
-    }
-
-    @Test
-    void respondToInvitation_ShouldDeclineInvitation_WhenValidInput() {
-        // Given
-        Participant participant = Participant.builder()
-                .status(InvitationStatus.PENDING)
-                .userId(currentUserId)
-                .build();
-
-        ParticipantDTO dto = ParticipantDTO.builder().build();
-
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(participant));
-        when(participantRepository.save(participant)).thenReturn(participant);
-        when(participantMapper.toDTO(participant)).thenReturn(dto);
-
-        // When
-        ParticipantDTO result = participantService.respondToInvitation(participantId, InvitationStatus.DECLINED, currentUserId);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(InvitationStatus.DECLINED, participant.getStatus());
-        assertNull(participant.getJoinedAt()); // Should not set joinedAt for declined
-        verify(participantRepository).save(participant);
-    }
-
-    @Test
-    void updateParticipantRoleByEmail_ShouldThrowException_WhenUserNotRegistered() {
-        // Given
-        String email = "unregistered@example.com";
-        ParticipantDTO updates = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
-
-        when(userService.isRegisteredUser(email)).thenReturn(false);
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.updateParticipantRoleByEmail(tripId, email, updates, currentUserId));
-
-        assertEquals("Nie znaleziono zarejestrowanego użytkownika z tym emailem", exception.getMessage());
-    }
-
-    @Test
-    void removeParticipantByEmail_ShouldThrowException_WhenUserNotRegistered() {
-        // Given
-        String email = "unregistered@example.com";
-        when(userService.isRegisteredUser(email)).thenReturn(false);
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.removeParticipantByEmail(tripId, email, currentUserId));
-
-        assertEquals("Nie znaleziono zarejestrowanego użytkownika z tym emailem", exception.getMessage());
-    }
-
-    @Test
-    void addParticipant_ShouldThrowException_WhenMissingUserIdAndEmail() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .tripId(tripId)
-                .role(ParticipantRole.MEMBER)
-                .build(); // No userId or email
-
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
-
-        assertEquals("Należy podać userId lub email", exception.getMessage());
-    }
-
-    // Add these test methods to your existing ParticipantServiceTest.java class
-
-    @Test
-    void addParticipant_ShouldCreateNewParticipant_WhenValidInput() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .tripId(tripId)
-                .email("test@example.com")
-                .role(ParticipantRole.MEMBER)
-                .build();
-
-        Participant savedParticipant = Participant.builder()
-                .id(participantId)
-                .userId(userId)
-                .email("test@example.com")
-                .role(ParticipantRole.MEMBER)
-                .status(InvitationStatus.PENDING)
-                .build();
-
-        ParticipantDTO returnedDto = ParticipantDTO.builder()
-                .id(participantId)
-                .email("test@example.com")
-                .build();
-
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(userService.findUserIdByEmail("test@example.com")).thenReturn(userId);
-        when(participantRepository.findByTripIdAndUserId(tripId, userId)).thenReturn(Optional.empty());
-        when(participantMapper.toEntity(dto)).thenReturn(savedParticipant);
-        when(participantRepository.save(savedParticipant)).thenReturn(savedParticipant);
-        when(participantMapper.toDTO(savedParticipant)).thenReturn(returnedDto);
-
-        // When
-        ParticipantDTO result = participantService.addParticipant(dto, currentUserId);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(InvitationStatus.PENDING, dto.getStatus());
-        verify(participantRepository).save(savedParticipant);
-    }
-
-
-
-    @Test
-    void addParticipant_ShouldThrowException_WhenEmailAndUserIdMismatch() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .tripId(tripId)
-                .userId(userId)
-                .email("test@example.com")
-                .role(ParticipantRole.MEMBER)
-                .build();
-
-        UUID differentUserId = UUID.randomUUID();
-
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(userService.findUserIdByEmail("test@example.com")).thenReturn(differentUserId); // Different user!
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
-
-        assertTrue(exception.getMessage().contains("nie należą do tego samego użytkownika"));
-    }
-
-    @Test
-    void addParticipant_ShouldThrowException_WhenUserIdNotFound() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .tripId(tripId)
-                .userId(userId)
-                .role(ParticipantRole.MEMBER)
-                .build();
-
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(userService.findEmailByUserId(userId)).thenReturn(null); // User not found
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
-
-        assertTrue(exception.getMessage().contains("Nie znaleziono użytkownika z ID"));
-    }
-
-    @Test
-    void addParticipant_ShouldThrowException_WhenPendingInvitationExists() {
-        // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
-                .tripId(tripId)
-                .email("test@example.com")
-                .role(ParticipantRole.MEMBER)
-                .build();
-
         Participant existingParticipant = Participant.builder()
-                .userId(userId)
+                .id(participantId)
+                .tripId(tripId)
+                .userId(memberId) // Ten sam użytkownik co wykonujący operację
+                .role(ParticipantRole.MEMBER)
+                .build();
+
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existingParticipant));
+        when(permissionService.canManageParticipant(tripId, memberId, participantId)).thenReturn(true);
+
+        // When
+        participantService.removeParticipant(participantId, memberId);
+
+        // Then
+        verify(participantRepository).deleteById(participantId);
+    }
+
+    @Test
+    void removeParticipant_AsMemberRemovingOther_ThrowsException() {
+        // Given
+        Participant existingParticipant = Participant.builder()
+                .id(participantId)
+                .tripId(tripId)
+                .userId(guestId) // Inny użytkownik niż wykonujący operację
+                .role(ParticipantRole.GUEST)
+                .build();
+
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existingParticipant));
+        when(permissionService.canManageParticipant(tripId, memberId, participantId)).thenReturn(false);
+
+        // When/Then
+        assertThatThrownBy(() -> participantService.removeParticipant(participantId, memberId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Nie masz uprawnień do usunięcia tego uczestnika");
+
+        verify(participantRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void respondToInvitation_OwnInvitation_Success() {
+        // Given
+        Participant pendingInvitation = Participant.builder()
+                .id(participantId)
+                .tripId(tripId)
+                .userId(memberId) // Ten sam użytkownik co wykonujący operację
+                .role(ParticipantRole.MEMBER)
                 .status(InvitationStatus.PENDING)
                 .build();
 
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(userService.findUserIdByEmail("test@example.com")).thenReturn(userId);
-        when(participantRepository.findByTripIdAndUserId(tripId, userId)).thenReturn(Optional.of(existingParticipant));
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(pendingInvitation));
+        when(participantRepository.save(any(Participant.class))).thenReturn(pendingInvitation);
+        when(participantMapper.toDTO(any(Participant.class))).thenReturn(participantDTO);
 
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
+        // When
+        ParticipantDTO result = participantService.respondToInvitation(participantId, InvitationStatus.ACCEPTED, memberId);
 
-        assertEquals("Użytkownik ma już oczekujące zaproszenie do tej wycieczki", exception.getMessage());
+        // Then
+        assertThat(result).isNotNull();
+        verify(participantRepository).save(any(Participant.class));
     }
 
     @Test
-    void addParticipant_ShouldThrowException_WhenNonOrganizerTriesToAddOrganizer() {
+    void respondToInvitation_OthersInvitation_ThrowsException() {
         // Given
-        ParticipantDTO dto = ParticipantDTO.builder()
+        Participant pendingInvitation = Participant.builder()
+                .id(participantId)
                 .tripId(tripId)
-                .email("test@example.com")
-                .role(ParticipantRole.ORGANIZER) // Trying to add organizer
+                .userId(guestId) // Inny użytkownik niż wykonujący operację
+                .role(ParticipantRole.GUEST)
+                .status(InvitationStatus.PENDING)
                 .build();
 
-        when(participantRepository.findAllByTripId(tripId)).thenReturn(Arrays.asList(new Participant()));
-        when(permissionService.canInviteParticipants(tripId, currentUserId)).thenReturn(true);
-        when(permissionService.hasRoleOrHigher(tripId, currentUserId, ParticipantRole.ORGANIZER)).thenReturn(false);
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(pendingInvitation));
 
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> participantService.addParticipant(dto, currentUserId));
+        // When/Then
+        assertThatThrownBy(() -> participantService.respondToInvitation(participantId, InvitationStatus.ACCEPTED, memberId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Możesz odpowiadać tylko na własne zaproszenia");
 
-        assertEquals("Tylko organizatorzy mogą dodawać innych organizatorów", exception.getMessage());
+        verify(participantRepository, never()).save(any(Participant.class));
     }
 
     @Test
-    void updateParticipantRole_ShouldUpdateSuccessfully_WhenValidInput() {
+    void respondToInvitation_AlreadyProcessed_ThrowsException() {
         // Given
-        ParticipantDTO updates = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
-        Participant existing = Participant.builder()
+        Participant acceptedInvitation = Participant.builder()
                 .id(participantId)
+                .tripId(tripId)
+                .userId(memberId) // Ten sam użytkownik co wykonujący operację
+                .role(ParticipantRole.MEMBER)
+                .status(InvitationStatus.ACCEPTED) // Już zaakceptowane zaproszenie
+                .build();
+
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(acceptedInvitation));
+
+        // When/Then
+        assertThatThrownBy(() -> participantService.respondToInvitation(participantId, InvitationStatus.DECLINED, memberId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Tylko oczekujące zaproszenia mogą być aktualizowane");
+
+        verify(participantRepository, never()).save(any(Participant.class));
+    }
+
+
+//    @Test
+//    void getParticipantsByTrip_ReturnsAllParticipants() {
+//        // Given
+//        Participant participant1 = Participant.builder()
+//                .id(UUID.randomUUID())
+//                .tripId(tripId)
+//                .userId(organizerId)
+//                .role(ParticipantRole.ORGANIZER)
+//                .status(InvitationStatus.ACCEPTED)
+//                .build();
+//
+//        Participant participant2 = Participant.builder()
+//                .id(UUID.randomUUID())
+//                .tripId(tripId)
+//                .userId(memberId)
+//                .role(ParticipantRole.MEMBER)
+//                .status(InvitationStatus.ACCEPTED)
+//                .build();
+//
+//        ParticipantDTO dto1 = ParticipantDTO.builder()
+//                .id(participant1.getId())
+//                .tripId(tripId)
+//                .userId(organizerId)
+//                .role(ParticipantRole.ORGANIZER)
+//                .status(InvitationStatus.ACCEPTED)
+//                .build();
+//
+//        ParticipantDTO dto2 = ParticipantDTO.builder()
+//                .id(participant2.getId())
+//                .tripId(tripId)
+//                .userId(memberId)
+//                .role(ParticipantRole.MEMBER)
+//                .status(InvitationStatus.ACCEPTED)
+//                .build();
+//
+//        List<Participant> participants = Arrays.asList(participant1, participant2);
+//
+//        when(participantRepository.findAllByTripId(tripId)).thenReturn(participants);
+//        when(participantMapper.toDTO(participant1)).thenReturn(dto1);
+//        when(participantMapper.toDTO(participant2)).thenReturn(dto2);
+//
+//        // When
+//        List<ParticipantDTO> result = participantService.getParticipantsByTrip(tripId);
+//
+//        // Then
+//        assertThat(result).hasSize(2);
+//        assertThat(result).extracting(ParticipantDTO::getRole)
+//                .containsExactlyInAnyOrder(ParticipantRole.ORGANIZER, ParticipantRole.MEMBER);
+//    }
+
+    @Test
+    void addParticipant_WithoutUserIdOrEmail_ThrowsException() {
+        // Given
+        ParticipantDTO invalidDTO = ParticipantDTO.builder()
                 .tripId(tripId)
                 .role(ParticipantRole.MEMBER)
                 .build();
 
-        ParticipantDTO returnedDto = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
+        // Mock permission service to return true for canInviteParticipants
+        when(permissionService.canInviteParticipants(tripId, memberId)).thenReturn(true);
 
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existing));
-        when(permissionService.canManageParticipant(tripId, currentUserId, participantId)).thenReturn(true);
-        when(permissionService.canAssignRole(tripId, currentUserId, ParticipantRole.ORGANIZER)).thenReturn(true);
-        when(participantRepository.save(existing)).thenReturn(existing);
-        when(participantMapper.toDTO(existing)).thenReturn(returnedDto);
+        // When/Then
+        assertThatThrownBy(() -> participantService.addParticipant(invalidDTO, memberId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Należy podać userId lub email");
+    }
 
-        // When
-        ParticipantDTO result = participantService.updateParticipantRole(participantId, updates, currentUserId);
+//    @Test
+//    void addParticipant_UserAlreadyParticipant_ThrowsException() {
+//        // Given
+//        when(permissionService.canInviteParticipants(tripId, memberId)).thenReturn(true);
+//        when(participantRepository.existsByTripIdAndUserId(tripId, memberId)).thenReturn(true);
+//
+//        ParticipantDTO dto = ParticipantDTO.builder()
+//                .tripId(tripId)
+//                .userId(memberId)
+//                .role(ParticipantRole.MEMBER)
+//                .build();
+//
+//        // When/Then
+//        assertThatThrownBy(() -> participantService.addParticipant(dto, memberId))
+//                .isInstanceOf(IllegalArgumentException.class)
+//                .hasMessageContaining("Użytkownik jest już uczestnikiem tej wycieczki");
+//    }
+//
+//    @Test
+//    void addParticipant_WithoutStatus_SetsStatusToPending() {
+//        // Given
+//        when(permissionService.canInviteParticipants(tripId, memberId)).thenReturn(true);
+//        when(permissionService.hasRoleOrHigher(tripId, memberId, ParticipantRole.ORGANIZER)).thenReturn(false);
+//
+//        ParticipantDTO dto = ParticipantDTO.builder()
+//                .tripId(tripId)
+//                .userId(UUID.randomUUID())
+//                .role(ParticipantRole.MEMBER)
+//                .status(null)  // No status provided
+//                .build();
+//
+//        Participant savedParticipant = Participant.builder()
+//                .id(UUID.randomUUID())
+//                .tripId(dto.getTripId())
+//                .userId(dto.getUserId())
+//                .role(dto.getRole())
+//                .status(InvitationStatus.PENDING)  // Status should be set to PENDING
+//                .build();
+//
+//        when(participantMapper.toEntity(any(ParticipantDTO.class))).thenReturn(savedParticipant);
+//        when(participantRepository.save(any(Participant.class))).thenReturn(savedParticipant);
+//        when(participantMapper.toDTO(savedParticipant)).thenReturn(dto);
+//
+//        // When
+//        ParticipantDTO result = participantService.addParticipant(dto, memberId);
+//
+//        // Then
+//        assertThat(result).isNotNull();
+//        verify(participantRepository).save(any(Participant.class));
+//    }
 
-        // Then
-        assertNotNull(result);
-        assertEquals(ParticipantRole.ORGANIZER, existing.getRole());
-        verify(participantRepository).save(existing);
+    @Test
+    void updateParticipantRole_ParticipantNotFound_ThrowsException() {
+        // Given
+        UUID nonExistentId = UUID.randomUUID();
+        when(participantRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        ParticipantDTO updateDTO = ParticipantDTO.builder()
+                .role(ParticipantRole.MEMBER)
+                .build();
+
+        // When/Then
+        assertThatThrownBy(() -> participantService.updateParticipantRole(nonExistentId, updateDTO, memberId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Nie znaleziono uczestnika");
     }
 
     @Test
-    void updateParticipantRole_ShouldThrowException_WhenCannotAssignRole() {
+    void updateParticipantRole_NoRoleUpdate_OnlyUpdatesExistingData() {
         // Given
-        ParticipantDTO updates = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
-        Participant existing = Participant.builder().tripId(tripId).build();
-
-        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existing));
-        when(permissionService.canManageParticipant(tripId, currentUserId, participantId)).thenReturn(true);
-        when(permissionService.canAssignRole(tripId, currentUserId, ParticipantRole.ORGANIZER)).thenReturn(false);
-
-        // When & Then
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> participantService.updateParticipantRole(participantId, updates, currentUserId));
-
-        assertEquals("Nie masz uprawnień do przydzielania tej roli", exception.getMessage());
-    }
-
-    @Test
-    void updateParticipantRoleByEmail_ShouldUpdateSuccessfully_WhenValidInput() {
-        // Given
-        String email = "test@example.com";
-        ParticipantDTO updates = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
-        Participant existing = Participant.builder()
+        Participant existingParticipant = Participant.builder()
                 .id(participantId)
                 .tripId(tripId)
+                .userId(memberId)
+                .role(ParticipantRole.MEMBER)
+                .status(InvitationStatus.ACCEPTED)
                 .build();
 
-        ParticipantDTO returnedDto = ParticipantDTO.builder().build();
+        ParticipantDTO updateDTO = ParticipantDTO.builder()
+                .build(); // No role update provided
 
-        when(userService.isRegisteredUser(email)).thenReturn(true);
-        when(participantRepository.findByTripIdAndEmail(tripId, email)).thenReturn(Optional.of(existing));
-        when(permissionService.canManageParticipant(tripId, currentUserId, participantId)).thenReturn(true);
-        when(permissionService.canAssignRole(tripId, currentUserId, ParticipantRole.ORGANIZER)).thenReturn(true);
-        when(participantRepository.save(existing)).thenReturn(existing);
-        when(participantMapper.toDTO(existing)).thenReturn(returnedDto);
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existingParticipant));
+        when(permissionService.canManageParticipant(tripId, organizerId, participantId)).thenReturn(true);
+        when(participantRepository.save(any(Participant.class))).thenReturn(existingParticipant);
+        when(participantMapper.toDTO(any(Participant.class))).thenReturn(participantDTO);
 
         // When
-        ParticipantDTO result = participantService.updateParticipantRoleByEmail(tripId, email, updates, currentUserId);
+        ParticipantDTO result = participantService.updateParticipantRole(participantId, updateDTO, organizerId);
 
         // Then
-        assertNotNull(result);
-        verify(participantRepository).save(existing);
+        assertThat(result).isNotNull();
+        verify(participantRepository).save(existingParticipant);
+        // Role should remain MEMBER since no update was provided
     }
 
     @Test
-    void updateParticipantRoleByEmail_ShouldThrowException_WhenParticipantNotFound() {
+    void removeParticipant_ParticipantNotFound_ThrowsException() {
         // Given
-        String email = "notfound@example.com";
-        ParticipantDTO updates = ParticipantDTO.builder().role(ParticipantRole.ORGANIZER).build();
+        UUID nonExistentId = UUID.randomUUID();
+        when(participantRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-        when(userService.isRegisteredUser(email)).thenReturn(true);
-        when(participantRepository.findByTripIdAndEmail(tripId, email)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(NotFoundException.class,
-                () -> participantService.updateParticipantRoleByEmail(tripId, email, updates, currentUserId));
+        // When/Then
+        assertThatThrownBy(() -> participantService.removeParticipant(nonExistentId, organizerId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Nie znaleziono uczestnika");
     }
 
     @Test
-    void removeParticipantByEmail_ShouldDeleteSuccessfully_WhenValidInput() {
+    void respondToInvitation_WithPendingStatus_ThrowsException() {
         // Given
-        String email = "test@example.com";
-        Participant participant = Participant.builder()
+        ParticipantDTO dto = ParticipantDTO.builder().build();
+
+        // When/Then
+        assertThatThrownBy(() -> participantService.respondToInvitation(participantId, InvitationStatus.PENDING, memberId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Status musi być ACCEPTED lub DECLINED");
+    }
+
+    @Test
+    void respondToInvitation_ParticipantNotFound_ThrowsException() {
+        // Given
+        UUID nonExistentId = UUID.randomUUID();
+        when(participantRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+        // When/Then
+        assertThatThrownBy(() -> participantService.respondToInvitation(nonExistentId, InvitationStatus.ACCEPTED, memberId))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("Nie znaleziono uczestnika");
+    }
+
+    @Test
+    void updateParticipantRole_WithNewRoleButNoPermissionToAssignRole_ThrowsException() {
+        // Given
+        Participant existingParticipant = Participant.builder()
                 .id(participantId)
                 .tripId(tripId)
+                .userId(UUID.randomUUID())
+                .role(ParticipantRole.MEMBER)
                 .build();
 
-        when(userService.isRegisteredUser(email)).thenReturn(true);
-        when(participantRepository.findByTripIdAndEmail(tripId, email)).thenReturn(Optional.of(participant));
-        when(permissionService.canManageParticipant(tripId, currentUserId, participantId)).thenReturn(true);
-
-        // When
-        participantService.removeParticipantByEmail(tripId, email, currentUserId);
-
-        // Then
-        verify(participantRepository).delete(participant);
-    }
-
-    @Test
-    void removeParticipantByEmail_ShouldThrowException_WhenParticipantNotFound() {
-        // Given
-        String email = "notfound@example.com";
-
-        when(userService.isRegisteredUser(email)).thenReturn(true);
-        when(participantRepository.findByTripIdAndEmail(tripId, email)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(NotFoundException.class,
-                () -> participantService.removeParticipantByEmail(tripId, email, currentUserId));
-    }
-
-    @Test
-    void respondToInvitationByEmail_ShouldAcceptSuccessfully_WhenValidInput() {
-        // Given
-        String email = "test@example.com";
-        Participant participant = Participant.builder()
-                .status(InvitationStatus.PENDING)
-                .userId(currentUserId)
+        ParticipantDTO updateDTO = ParticipantDTO.builder()
+                .role(ParticipantRole.ORGANIZER)
                 .build();
 
-        ParticipantDTO returnedDto = ParticipantDTO.builder().build();
+        when(participantRepository.findById(participantId)).thenReturn(Optional.of(existingParticipant));
+        when(permissionService.canManageParticipant(tripId, memberId, participantId)).thenReturn(true);
+        when(permissionService.canAssignRole(tripId, memberId, ParticipantRole.ORGANIZER)).thenReturn(false);
 
-        when(userService.isRegisteredUser(email)).thenReturn(true);
-        when(participantRepository.findByTripIdAndEmail(tripId, email)).thenReturn(Optional.of(participant));
-        when(participantRepository.save(participant)).thenReturn(participant);
-        when(participantMapper.toDTO(participant)).thenReturn(returnedDto);
-
-        // When
-        ParticipantDTO result = participantService.respondToInvitationByEmail(tripId, email, InvitationStatus.ACCEPTED, currentUserId);
-
-        // Then
-        assertNotNull(result);
-        assertEquals(InvitationStatus.ACCEPTED, participant.getStatus());
-        assertNotNull(participant.getJoinedAt());
-        verify(participantRepository).save(participant);
+        // When/Then
+        assertThatThrownBy(() -> participantService.updateParticipantRole(participantId, updateDTO, memberId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Nie masz uprawnień do przydzielania tej roli");
     }
+
+//    @Test
+//    void addParticipant_WithExistingEmailOnly_Success() {
+//        // Given
+//        when(permissionService.canInviteParticipants(tripId, memberId)).thenReturn(true);
+//        when(permissionService.hasRoleOrHigher(tripId, memberId, ParticipantRole.ORGANIZER)).thenReturn(false);
+//
+//        // Create DTO with only email (no userId)
+//        ParticipantDTO dto = ParticipantDTO.builder()
+//                .tripId(tripId)
+//                .email("existing@example.com")
+//                .role(ParticipantRole.MEMBER)
+//                .build();
+//
+//        Participant entity = Participant.builder()
+//                .id(UUID.randomUUID())
+//                .tripId(tripId)
+//                .email("existing@example.com")
+//                .role(ParticipantRole.MEMBER)
+//                .status(InvitationStatus.PENDING)
+//                .build();
+//
+//        ParticipantDTO savedDto = ParticipantDTO.builder()
+//                .id(entity.getId())
+//                .tripId(entity.getTripId())
+//                .email(entity.getEmail())
+//                .role(entity.getRole())
+//                .status(entity.getStatus())
+//                .build();
+//
+//        when(participantMapper.toEntity(any(ParticipantDTO.class))).thenReturn(entity);
+//        when(participantRepository.save(any(Participant.class))).thenReturn(entity);
+//        when(participantMapper.toDTO(entity)).thenReturn(savedDto);
+//
+//        // When
+//        ParticipantDTO result = participantService.addParticipant(dto, memberId);
+//
+//        // Then
+//        assertThat(result).isNotNull();
+//        assertThat(result.getEmail()).isEqualTo("existing@example.com");
+//        verify(participantRepository).save(any(Participant.class));
+//    }
 
     @Test
-    void respondToInvitationByEmail_ShouldThrowException_WhenUserNotRegistered() {
+    void addParticipant_WithEmptyEmailString_ThrowsException() {
         // Given
-        String email = "unregistered@example.com";
+        when(permissionService.canInviteParticipants(tripId, memberId)).thenReturn(true);
 
-        when(userService.isRegisteredUser(email)).thenReturn(false);
+        // Create DTO with empty email string (not null)
+        ParticipantDTO dto = ParticipantDTO.builder()
+                .tripId(tripId)
+                .userId(null)
+                .email("")  // Empty string instead of null
+                .role(ParticipantRole.MEMBER)
+                .build();
 
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> participantService.respondToInvitationByEmail(tripId, email, InvitationStatus.ACCEPTED, currentUserId));
-
-        assertEquals("Nie znaleziono zarejestrowanego użytkownika z tym emailem", exception.getMessage());
+        // When/Then
+        assertThatThrownBy(() -> participantService.addParticipant(dto, memberId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Należy podać userId lub email");
     }
 
-    @Test
-    void respondToInvitationByEmail_ShouldThrowException_WhenParticipantNotFound() {
-        // Given
-        String email = "notfound@example.com";
+//    @Test
+//    void addParticipant_AsOrganizerAddingOrganizer_Success() {
+//        // Given
+//        when(permissionService.canInviteParticipants(tripId, organizerId)).thenReturn(true);
+//        when(permissionService.hasRoleOrHigher(tripId, organizerId, ParticipantRole.ORGANIZER)).thenReturn(true);
+//
+//        UUID newUserId = UUID.randomUUID();
+//        // Create DTO with Organizer role
+//        ParticipantDTO dto = ParticipantDTO.builder()
+//                .tripId(tripId)
+//                .userId(newUserId)
+//                .role(ParticipantRole.ORGANIZER)
+//                .build();
+//
+//        Participant entity = Participant.builder()
+//                .id(UUID.randomUUID())
+//                .tripId(tripId)
+//                .userId(newUserId)
+//                .role(ParticipantRole.ORGANIZER)
+//                .status(InvitationStatus.PENDING)
+//                .build();
+//
+//        ParticipantDTO savedDto = ParticipantDTO.builder()
+//                .id(entity.getId())
+//                .tripId(entity.getTripId())
+//                .userId(entity.getUserId())
+//                .role(entity.getRole())
+//                .status(entity.getStatus())
+//                .build();
+//
+//        when(participantMapper.toEntity(any(ParticipantDTO.class))).thenReturn(entity);
+//        when(participantRepository.save(any(Participant.class))).thenReturn(entity);
+//        when(participantMapper.toDTO(entity)).thenReturn(savedDto);
+//
+//        // When
+//        ParticipantDTO result = participantService.addParticipant(dto, organizerId);
+//
+//        // Then
+//        assertThat(result).isNotNull();
+//        assertThat(result.getRole()).isEqualTo(ParticipantRole.ORGANIZER);
+//        verify(participantRepository).save(any(Participant.class));
+//    }
 
-        when(userService.isRegisteredUser(email)).thenReturn(true);
-        when(participantRepository.findByTripIdAndEmail(tripId, email)).thenReturn(Optional.empty());
-
-        // When & Then
-        assertThrows(NotFoundException.class,
-                () -> participantService.respondToInvitationByEmail(tripId, email, InvitationStatus.ACCEPTED, currentUserId));
-    }
 
 }

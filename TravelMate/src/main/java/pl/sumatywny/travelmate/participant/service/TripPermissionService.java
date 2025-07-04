@@ -2,7 +2,6 @@ package pl.sumatywny.travelmate.participant.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import pl.sumatywny.travelmate.participant.model.InvitationStatus;
 import pl.sumatywny.travelmate.participant.model.ParticipantRole;
 import pl.sumatywny.travelmate.participant.repository.ParticipantRepository;
 
@@ -117,15 +116,6 @@ public class TripPermissionService {
 
 
     /**
-     * Sprawdza czy użytkownik może dodawać/edytować punkty
-     */
-    public boolean canManagePoints(UUID tripId, UUID userId) {
-        // ORGANIZER i MEMBER mogą zarządzać punktami, GUEST nie
-        return hasRoleOrHigher(tripId, userId, ParticipantRole.MEMBER);
-    }
-
-
-    /**
      * Sprawdza czy użytkownik może przydzielać określoną rolę
      */
     public boolean canAssignRole(UUID tripId, UUID userId, ParticipantRole roleToAssign) {
@@ -145,69 +135,4 @@ public class TripPermissionService {
         return true;
 
     }
-
-    // Add these new methods to TripPermissionService.java
-
-    /**
-     * Sprawdza czy użytkownik jest zaakceptowanym uczestnikiem wycieczki
-     * @param tripId ID wycieczki
-     * @param userId ID użytkownika
-     * @return true jeśli użytkownik ma status ACCEPTED
-     */
-    public boolean isAcceptedParticipant(UUID tripId, UUID userId) {
-        return participantRepository.findByTripIdAndUserId(tripId, userId)
-                .map(participant -> participant.getStatus() == InvitationStatus.ACCEPTED)
-                .orElse(false);
-    }
-
-    /**
-     * Pobiera rolę użytkownika TYLKO jeśli ma status ACCEPTED
-     * @param tripId ID wycieczki
-     * @param userId ID użytkownika
-     * @return Rola użytkownika lub null jeśli nie jest zaakceptowanym uczestnikiem
-     */
-    public ParticipantRole getAcceptedUserRole(UUID tripId, UUID userId) {
-        return participantRepository.findByTripIdAndUserId(tripId, userId)
-                .filter(participant -> participant.getStatus() == InvitationStatus.ACCEPTED)
-                .map(participant -> participant.getRole())
-                .orElse(null);
-    }
-
-    /**
-     * Sprawdza czy zaakceptowany użytkownik ma określoną rolę lub wyższą
-     * @param tripId ID wycieczki
-     * @param userId ID użytkownika
-     * @param minimumRole Minimalna wymagana rola
-     * @return true jeśli użytkownik jest zaakceptowany I ma wymaganą rolę lub wyższą
-     */
-    public boolean hasAcceptedRoleOrHigher(UUID tripId, UUID userId, ParticipantRole minimumRole) {
-        ParticipantRole userRole = getAcceptedUserRole(tripId, userId);
-
-        // Jeśli użytkownik nie jest zaakceptowanym uczestnikiem
-        if (userRole == null) {
-            return false;
-        }
-
-        // Sprawdzenie hierarchii ról (ORGANIZER > MEMBER > GUEST)
-        return userRole.ordinal() <= minimumRole.ordinal();
-    }
-
-    /**
-     * Sprawdza czy zaakceptowany użytkownik może dodawać wydatki
-     */
-    public boolean canAddExpensesAsAccepted(UUID tripId, UUID userId) {
-        // Tylko zaakceptowani ORGANIZER i MEMBER mogą dodawać wydatki
-        return hasAcceptedRoleOrHigher(tripId, userId, ParticipantRole.MEMBER);
-    }
-
-    /**
-     * Sprawdza czy zaakceptowany użytkownik może zarządzać punktami
-     */
-    public boolean canManagePointsAsAccepted(UUID tripId, UUID userId) {
-        // Tylko zaakceptowani ORGANIZER i MEMBER mogą zarządzać punktami
-        return hasAcceptedRoleOrHigher(tripId, userId, ParticipantRole.MEMBER);
-    }
-
-
-
 }
