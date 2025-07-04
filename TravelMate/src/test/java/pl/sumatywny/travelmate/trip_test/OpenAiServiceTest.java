@@ -61,4 +61,38 @@ class OpenAiServiceTest {
         assertThat(dto.getLat()).isEqualTo(50.054);
         assertThat(dto.getLng()).isEqualTo(19.936);
     }
+
+    @Test
+    void shouldReturnEmptyListForEmptyInput() {
+        List<PlaceVisitDto> result = openAiService.getDetails(List.of());
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldSkipPlaceWhenPlaceIdIsNull() {
+        List<Map<String, Object>> gptOutput = List.of(
+                Map.of("Nazwa miejsca", "Nieistniejące miejsce", "Data odwiedzin", "2025-05-08")
+        );
+
+        when(googlePlacesService.getPlaceId("Nieistniejące miejsce")).thenReturn(null);
+
+        List<PlaceVisitDto> result = openAiService.getDetails(gptOutput);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldHandleInvalidJsonGracefully() {
+        List<Map<String, Object>> gptOutput = List.of(
+                Map.of("Nazwa miejsca", "Błędny JSON", "Data odwiedzin", "2025-05-08")
+        );
+
+        when(googlePlacesService.getPlaceId("Błędny JSON")).thenReturn("xyz");
+        when(googlePlacesService.getPlaceDetails("xyz")).thenReturn("not a json");
+
+        List<PlaceVisitDto> result = openAiService.getDetails(gptOutput);
+
+        assertThat(result).isEmpty(); // lub .hasSize(0)
+    }
+
 }
