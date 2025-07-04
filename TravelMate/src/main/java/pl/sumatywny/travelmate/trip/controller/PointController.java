@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import pl.sumatywny.travelmate.participant.service.TripPermissionService;
 import pl.sumatywny.travelmate.trip.model.Point;
 import pl.sumatywny.travelmate.trip.service.PointService;
 import pl.sumatywny.travelmate.trip.service.TripService;
@@ -25,11 +26,13 @@ public class PointController {
     private final PointService pointService;
     private final TripService tripService;
     private final UserService userService;
+    private final TripPermissionService permissionService;
 
-    public PointController(PointService pointService, TripService tripService, UserService userService) {
+    public PointController(PointService pointService, TripService tripService, UserService userService, TripPermissionService permissionService) {
         this.pointService = pointService;
         this.tripService = tripService;
         this.userService = userService;
+        this.permissionService = permissionService;
     }
 
     @Operation(
@@ -73,8 +76,8 @@ public class PointController {
     public Point create(@PathVariable UUID tripId, @RequestBody Point point, Authentication authentication) {
         UUID currentUserId = extractUserIdFromAuthentication(authentication);
 
-        if (!tripService.canUserAccessTrip(tripId, currentUserId)) {
-            throw new RuntimeException("Access denied: You are not a participant in this trip");
+        if (!permissionService.canManagePoints(tripId, currentUserId)) {
+            throw new RuntimeException("Access denied: You don't have permission to manage points in this trip");
         }
 
         return pointService.create(tripId, point);
@@ -119,16 +122,18 @@ public class PointController {
                     @ApiResponse(responseCode = "403", description = "Access denied", content = @Content)
             }
     )
+
     @PutMapping("/{id}")
     public Point update(@PathVariable UUID tripId, @PathVariable Long id, @RequestBody Point point, Authentication authentication) {
         UUID currentUserId = extractUserIdFromAuthentication(authentication);
 
-        if (!tripService.canUserAccessTrip(tripId, currentUserId)) {
-            throw new RuntimeException("Access denied: You are not a participant in this trip");
+        if (!permissionService.canManagePoints(tripId, currentUserId)) {
+            throw new RuntimeException("Access denied: You don't have permission to manage points in this trip");
         }
 
         return pointService.update(tripId, id, point);
     }
+
 
     @Operation(
             summary = "Delete a point from a trip",
@@ -147,8 +152,8 @@ public class PointController {
     public void delete(@PathVariable UUID tripId, @PathVariable Long id, Authentication authentication) {
         UUID currentUserId = extractUserIdFromAuthentication(authentication);
 
-        if (!tripService.canUserAccessTrip(tripId, currentUserId)) {
-            throw new RuntimeException("Access denied: You are not a participant in this trip");
+        if (!permissionService.canManagePoints(tripId, currentUserId)) {
+            throw new RuntimeException("Access denied: You don't have permission to manage points in this trip");
         }
 
         pointService.delete(tripId, id);
@@ -171,8 +176,8 @@ public class PointController {
     public Point markVisited(@PathVariable UUID tripId, @PathVariable Long id, Authentication authentication) {
         UUID currentUserId = extractUserIdFromAuthentication(authentication);
 
-        if (!tripService.canUserAccessTrip(tripId, currentUserId)) {
-            throw new RuntimeException("Access denied: You are not a participant in this trip");
+        if (!permissionService.canManagePoints(tripId, currentUserId)) {
+            throw new RuntimeException("Access denied: You don't have permission to manage points in this trip");
         }
 
         return pointService.markVisited(tripId, id);
