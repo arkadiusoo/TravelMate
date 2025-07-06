@@ -6,10 +6,12 @@ import io.cucumber.java.Before;
 import io.cucumber.java.en.*;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.spring.CucumberContextConfiguration;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
+import org.springframework.security.test.context.support.WithMockUser;
 import pl.sumatywny.travelmate.budget.controller.ExpenseController;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -18,24 +20,26 @@ import org.springframework.test.web.servlet.MvcResult;
 import pl.sumatywny.travelmate.budget.dto.ExpenseDTO;
 import pl.sumatywny.travelmate.budget.model.ExpenseCategory;
 import pl.sumatywny.travelmate.budget.service.ExpenseService;
+import pl.sumatywny.travelmate.security.model.User;
 import pl.sumatywny.travelmate.security.service.UserService;
 import pl.sumatywny.travelmate.security.service.JwtService;
+import pl.sumatywny.travelmate.trip.controller.TripController;
+import pl.sumatywny.travelmate.trip.model.Trip;
+import pl.sumatywny.travelmate.trip.service.TripService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.HashMap;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 @CucumberContextConfiguration
 @WebMvcTest(
-    controllers = ExpenseController.class,
+    controllers = {ExpenseController.class,
+    TripController.class},
     excludeAutoConfiguration = {
         SecurityAutoConfiguration.class,
         SecurityFilterAutoConfiguration.class
@@ -53,6 +57,8 @@ public class ExpenseControllerSteps {
     @MockBean
     private UserService userService;
     @MockBean
+    private TripService tripService;
+    @MockBean
     private JwtService jwtService;
 
     private UUID tripId;
@@ -62,6 +68,10 @@ public class ExpenseControllerSteps {
     private ExpenseDTO sampleExpense;
     private MvcResult result;
     private ExpenseDTO requestDto;
+    private Trip requestTripDto;
+    private Trip sampleTrip;
+    private Trip sampleTripTest;
+    private UUID userId;
     // Stub for new description variable
     private String newDescription;
     @Given("I have an existing expense with id {string}")
@@ -85,11 +95,38 @@ public class ExpenseControllerSteps {
         currentUserId = UUID.randomUUID();
         // zawsze zwracajmy ten sam currentUserId
         when(userService.getCurrentUserId(any())).thenReturn(currentUserId);
+        tripId = UUID.fromString("987e6543-e21b-12d3-a456-426614174111");
+
+        sampleTripTest = new Trip();
+        sampleTripTest.setId(tripId);
+        sampleTripTest.setName("Old Trip");
+        sampleTripTest.setStartDate(LocalDate.of(2025, 1, 1));
+        sampleTripTest.setEndDate(LocalDate.of(2025, 1, 5));
     }
 
     @Given("a current user is authenticated")
     public void a_current_user_is_authenticated() {
         // już ustawione w @Before
+    }
+
+    @Given("the following trip payload:")
+    public void the_following_trip_payload(DataTable table) {
+        Map<String, String> map = table.asMaps().get(0);
+
+        Trip trip = new Trip();
+        trip.setName("Weekend w Warszawie");
+        trip.setTripBudget(1000.0);
+
+        requestTripDto = trip;
+    }
+
+    @Given("a trip with id {string} exists in the database")
+    public void a_trip_exists_in_the_database(String id) {
+        tripId = UUID.fromString(id);
+        sampleTripTest = new Trip();
+        sampleTripTest.setId(tripId);
+        when(tripService.findById(tripId)).thenReturn(sampleTripTest);
+        when(tripService.canUserAccessTrip(eq(tripId), any(UUID.class))).thenReturn(true);
     }
 
     @Given("a sample expense exists for a trip")
@@ -142,6 +179,23 @@ public class ExpenseControllerSteps {
                         .andReturn();
     }
 
+    @When("user tries to get the trip by that ID")
+    public void user_tries_to_get_the_trip_by_that_id() throws Exception {
+        result = mockMvc.perform(get("/api/trips/" + tripId))
+                .andReturn();
+    }
+
+    @When("I POST {string} with the trip payload")
+    public void i_post_trip_with_that_payload(String urlTemplate) throws Exception {
+        when(tripService.create(any(), eq(currentUserId)))
+                .thenReturn(sampleTrip);
+
+        result = mockMvc.perform(post(urlTemplate)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestTripDto)))
+                .andReturn();
+    }
+
     @When("I POST {string} with that payload")
     public void i_post_with_that_payload(String urlTemplate) throws Exception {
         when(expenseService.addExpense(any(), eq(currentUserId)))
@@ -152,6 +206,29 @@ public class ExpenseControllerSteps {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)))
             .andReturn();
+    }
+
+    @When("user updates the trip with name {string} starting on {string} and ending on {string}")
+    public void user_updates_the_trip(String name, String start, String end) throws Exception {
+        Trip updated = new Trip();
+        updated.setId(tripId);
+        updated.setName(name);
+        updated.setStartDate(LocalDate.parse(start));
+        updated.setEndDate(LocalDate.parse(end));
+
+        when(tripService.update(eq(tripId), any())).thenReturn(updated);
+
+        result = mockMvc.perform(put("/api/trips/" + tripId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updated)))
+                .andReturn();
+    }
+
+    @When("user deletes the trip")
+    public void user_deletes_the_trip() throws Exception {
+        doNothing().when(tripService).delete(tripId);
+        result = mockMvc.perform(delete("/api/trips/" + tripId))
+                .andReturn();
     }
 
     @When("I PATCH {string} with:")
@@ -178,6 +255,20 @@ public class ExpenseControllerSteps {
         assertEquals(expectedStatus.intValue(), result.getResponse().getStatus());
     }
 
+    @Then("the trip should be returned")
+    public void the_trip_should_be_returned() throws Exception {
+        assertEquals(200, result.getResponse().getStatus());
+        Trip returned = objectMapper.readValue(result.getResponse().getContentAsString(), Trip.class);
+        assertEquals(sampleTripTest.getId(), returned.getId());
+    }
+
+    @Then("the trip should be updated")
+    public void the_trip_should_be_updated() throws Exception {
+        assertEquals(200, result.getResponse().getStatus());
+        Trip returned = objectMapper.readValue(result.getResponse().getContentAsString(), Trip.class);
+        assertEquals("Winter Trip", returned.getName());
+    }
+
     @Then("the JSON array should contain an expense with name {string}")
     public void the_json_array_should_contain_an_expense_with_name(String expectedName) throws Exception {
         String json = result.getResponse().getContentAsString();
@@ -191,5 +282,11 @@ public class ExpenseControllerSteps {
         String actual = objectMapper.readTree(result.getResponse().getContentAsString())
                                      .get(field).asText();
         assertEquals(expected, actual);
+    }
+
+    @Then("the trip should be removed")
+    public void the_trip_should_be_removed() {
+        assertEquals(200, result.getResponse().getStatus());
+        verify(tripService).delete(tripId);
     }
 }

@@ -55,7 +55,7 @@ public class TripController {
     )
     @PostMapping
     public Trip create(@RequestBody Trip trip, Authentication authentication) {
-        UUID currentUserId = extractUserIdFromAuthentication(authentication);
+        UUID currentUserId = userService.getCurrentUserId(authentication);
         return tripService.create(trip, currentUserId);
     }
 
@@ -74,7 +74,7 @@ public class TripController {
     )
     @GetMapping("/{id}")
     public Trip getOne(@PathVariable UUID id, Authentication authentication) {
-        UUID currentUserId = extractUserIdFromAuthentication(authentication);
+        UUID currentUserId = userService.getCurrentUserId(authentication);
 
         if (!tripService.canUserAccessTrip(id, currentUserId)) {
             throw new RuntimeException("Access denied: You are not a participant in this trip");
@@ -98,7 +98,7 @@ public class TripController {
     )
     @PutMapping("/{id}")
     public Trip update(@PathVariable UUID id, @RequestBody Trip trip, Authentication authentication) {
-        UUID currentUserId = extractUserIdFromAuthentication(authentication);
+        UUID currentUserId = userService.getCurrentUserId(authentication);
 
         if (!tripService.canUserAccessTrip(id, currentUserId)) {
             throw new RuntimeException("Access denied: You are not a participant in this trip");
@@ -121,7 +121,7 @@ public class TripController {
     )
     @DeleteMapping("/{id}")
     public void delete(@PathVariable UUID id, Authentication authentication) {
-        UUID currentUserId = extractUserIdFromAuthentication(authentication);
+        UUID currentUserId = userService.getCurrentUserId(authentication);
 
         if (!tripService.canUserAccessTrip(id, currentUserId)) {
             throw new RuntimeException("Access denied: You are not a participant in this trip");

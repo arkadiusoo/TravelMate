@@ -29,3 +29,25 @@ Feature: Expense management API
       | Updated lunch |
     Then the HTTP status should be 200
     And the JSON object should have "description" equal to "Updated lunch"
+
+  Scenario: Create a new trip
+    Given the following trip payload:
+      | name | budget |
+      | Weekend w Warszawie | 1000 |
+    When I POST "/api/trips" with the trip payload
+    Then the HTTP status should be 200
+
+  Scenario: User finds a trip by ID
+    Given a trip with id "987e6543-e21b-12d3-a456-426614174111" exists in the database
+    When user tries to get the trip by that ID
+    Then the trip should be returned
+
+  Scenario: User updates an existing trip
+    Given a trip with id "987e6543-e21b-12d3-a456-426614174111" exists in the database
+    When user updates the trip with name "Winter Trip" starting on "2025-12-01" and ending on "2025-12-10"
+    Then the trip should be updated
+
+  Scenario: User deletes a trip
+    Given a trip with id "222e4444-e21b-12d3-a456-426614174999" exists in the database
+    When user deletes the trip
+    Then the trip should be removed
