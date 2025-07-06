@@ -20,12 +20,21 @@ import org.springframework.test.web.servlet.MvcResult;
 import pl.sumatywny.travelmate.budget.dto.ExpenseDTO;
 import pl.sumatywny.travelmate.budget.model.ExpenseCategory;
 import pl.sumatywny.travelmate.budget.service.ExpenseService;
+import pl.sumatywny.travelmate.participant.service.TripPermissionService;
 import pl.sumatywny.travelmate.security.model.User;
 import pl.sumatywny.travelmate.security.service.UserService;
 import pl.sumatywny.travelmate.security.service.JwtService;
 import pl.sumatywny.travelmate.trip.controller.TripController;
 import pl.sumatywny.travelmate.trip.model.Trip;
 import pl.sumatywny.travelmate.trip.service.TripService;
+import pl.sumatywny.travelmate.participant.controller.ParticipantController;
+import pl.sumatywny.travelmate.participant.dto.InvitationResponseDTO;
+import pl.sumatywny.travelmate.participant.dto.ParticipantDTO;
+import pl.sumatywny.travelmate.participant.model.InvitationStatus;
+import pl.sumatywny.travelmate.participant.model.ParticipantRole;
+import pl.sumatywny.travelmate.participant.service.ParticipantService;
+import pl.sumatywny.travelmate.security.service.AuthService;
+import java.time.LocalDateTime;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -38,12 +47,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 @CucumberContextConfiguration
 @WebMvcTest(
-    controllers = {ExpenseController.class,
-    TripController.class},
-    excludeAutoConfiguration = {
-        SecurityAutoConfiguration.class,
-        SecurityFilterAutoConfiguration.class
-    }
+        controllers = {ExpenseController.class, TripController.class, ParticipantController.class},
+        excludeAutoConfiguration = {
+                SecurityAutoConfiguration.class,
+                SecurityFilterAutoConfiguration.class
+        }
 )
 public class ExpenseControllerSteps {
 
@@ -60,6 +68,12 @@ public class ExpenseControllerSteps {
     private TripService tripService;
     @MockBean
     private JwtService jwtService;
+    @MockBean
+    private ParticipantService participantService;
+    @MockBean
+    private AuthService authService;
+    @MockBean
+    private TripPermissionService tripPermissionService;
 
     private UUID tripId;
     private UUID expenseId;
@@ -72,8 +86,15 @@ public class ExpenseControllerSteps {
     private Trip sampleTrip;
     private Trip sampleTripTest;
     private UUID userId;
+    private UUID participantId;
+    private UUID organizerId;
+    private UUID newUserId;
+    private ParticipantDTO organizerParticipant;
+    private ParticipantDTO pendingParticipant;
+    private ParticipantDTO participantRequestDto;
     // Stub for new description variable
     private String newDescription;
+
     @Given("I have an existing expense with id {string}")
     public void i_have_an_existing_expense_with_id(String id) {
         // Use placeholder or actual UUID
@@ -102,6 +123,17 @@ public class ExpenseControllerSteps {
         sampleTripTest.setName("Old Trip");
         sampleTripTest.setStartDate(LocalDate.of(2025, 1, 1));
         sampleTripTest.setEndDate(LocalDate.of(2025, 1, 5));
+
+        participantId = UUID.randomUUID();
+        organizerId = UUID.randomUUID();
+        newUserId = UUID.randomUUID();
+        when(authService.getCurrentUserId()).thenReturn(currentUserId);
+
+        // Mock permission service defaults
+        when(tripPermissionService.canInviteParticipants(any(), any())).thenReturn(true);
+        when(tripPermissionService.hasRoleOrHigher(any(), any(), any())).thenReturn(true);
+        when(tripPermissionService.canManageParticipant(any(), any(), any())).thenReturn(true);
+        when(tripPermissionService.isAcceptedParticipant(any(), any())).thenReturn(true);
     }
 
     @Given("a current user is authenticated")
@@ -132,21 +164,21 @@ public class ExpenseControllerSteps {
     @Given("a sample expense exists for a trip")
     public void a_sample_expense_exists_for_a_trip() {
         sampleExpense = ExpenseDTO.builder()
-            .id(expenseId)
-            .tripId(tripId)
-            .name("Lunch")
-            .amount(new BigDecimal("10.00"))
-            .category(ExpenseCategory.FOOD)
-            .description("Business lunch")
-            .date(LocalDate.of(2025, 6, 29))
-            .payerId(payerId)
-            .participantShares(Map.of(payerId, new BigDecimal("1.0")))
-            .participantPaymentStatus(Map.of(payerId, true))
-            .participantNames(List.of("Alice"))
-            .build();
+                .id(expenseId)
+                .tripId(tripId)
+                .name("Lunch")
+                .amount(new BigDecimal("10.00"))
+                .category(ExpenseCategory.FOOD)
+                .description("Business lunch")
+                .date(LocalDate.of(2025, 6, 29))
+                .payerId(payerId)
+                .participantShares(Map.of(payerId, new BigDecimal("1.0")))
+                .participantPaymentStatus(Map.of(payerId, true))
+                .participantNames(List.of("Alice"))
+                .build();
 
         when(expenseService.getExpensesByTrip(tripId))
-            .thenReturn(List.of(sampleExpense));
+                .thenReturn(List.of(sampleExpense));
     }
 
     @Given("the following expense payload:")
@@ -170,13 +202,13 @@ public class ExpenseControllerSteps {
 
     @When("I GET {string}")
     public void i_get(String urlTemplate) throws Exception {
-
         String url = urlTemplate
-            .replace("{tripId}", tripId.toString())
-            .replace("{expenseId}", expenseId.toString())
-            .replace("{payerId}", payerId.toString());
+                .replace("{tripId}", tripId.toString())
+                .replace("{expenseId}", expenseId.toString())
+                .replace("{payerId}", payerId.toString())
+                .replace("{participantId}", participantId.toString());
         result = mockMvc.perform(get(url))
-                        .andReturn();
+                .andReturn();
     }
 
     @When("user tries to get the trip by that ID")
@@ -198,14 +230,37 @@ public class ExpenseControllerSteps {
 
     @When("I POST {string} with that payload")
     public void i_post_with_that_payload(String urlTemplate) throws Exception {
-        when(expenseService.addExpense(any(), eq(currentUserId)))
-            .thenReturn(sampleExpense);
-
         String url = urlTemplate.replace("{tripId}", tripId.toString());
-        result = mockMvc.perform(post(url)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)))
-            .andReturn();
+
+        if (url.contains("/participants")) {
+            // Handle participant invitation
+            ParticipantDTO createdParticipant = ParticipantDTO.builder()
+                    .id(UUID.randomUUID())
+                    .tripId(tripId)
+                    .userId(newUserId)
+                    .email(participantRequestDto.getEmail())
+                    .role(participantRequestDto.getRole())
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            when(participantService.addParticipant(any(ParticipantDTO.class), eq(organizerId)))
+                    .thenReturn(createdParticipant);
+
+            result = mockMvc.perform(post(url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(participantRequestDto)))
+                    .andReturn();
+        } else {
+            // Handle expense (existing logic)
+            when(expenseService.addExpense(any(), eq(currentUserId)))
+                    .thenReturn(sampleExpense);
+
+            result = mockMvc.perform(post(url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(requestDto)))
+                    .andReturn();
+        }
     }
 
     @When("user updates the trip with name {string} starting on {string} and ending on {string}")
@@ -233,21 +288,53 @@ public class ExpenseControllerSteps {
 
     @When("I PATCH {string} with:")
     public void i_patch_with(String urlTemplate, io.cucumber.datatable.DataTable table) throws Exception {
-        Map<String, String> stringUpdates = table.asMaps().get(0);
-        Map<String, Object> updates = new HashMap<>();
-        stringUpdates.forEach((k, v) -> updates.put(k, v));
-        when(expenseService.patchExpense(eq(expenseId), eq(updates), eq(currentUserId)))
-            .thenReturn(sampleExpense.toBuilder()
-                .description((String) updates.get("description"))
-                .build());
-
         String url = urlTemplate
-            .replace("{tripId}", tripId.toString())
-            .replace("{expenseId}", expenseId.toString());
-        result = mockMvc.perform(patch(url)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updates)))
-            .andReturn();
+                .replace("{tripId}", tripId.toString())
+                .replace("{expenseId}", expenseId.toString())
+                .replace("{participantId}", participantId.toString());
+
+        if (url.contains("/participants/") && url.contains("/respond")) {
+            // Handle participant invitation response
+            Map<String, String> updates = table.asMaps().get(0);
+            InvitationResponseDTO response = new InvitationResponseDTO();
+            response.setStatus(InvitationStatus.valueOf(updates.get("status")));
+
+            ParticipantDTO acceptedParticipant = ParticipantDTO.builder()
+                    .id(pendingParticipant.getId())
+                    .tripId(pendingParticipant.getTripId())
+                    .userId(pendingParticipant.getUserId())
+                    .email(pendingParticipant.getEmail())
+                    .firstName(pendingParticipant.getFirstName())
+                    .lastName(pendingParticipant.getLastName())
+                    .role(pendingParticipant.getRole())
+                    .status(InvitationStatus.ACCEPTED)
+                    .createdAt(pendingParticipant.getCreatedAt())
+                    .joinedAt(LocalDateTime.now())
+                    .build();
+
+            when(participantService.respondToInvitation(eq(participantId),
+                    eq(InvitationStatus.ACCEPTED), eq(currentUserId)))
+                    .thenReturn(acceptedParticipant);
+
+            result = mockMvc.perform(patch(url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(response)))
+                    .andReturn();
+        } else {
+            // Handle expense patch (existing logic)
+            Map<String, String> stringUpdates = table.asMaps().get(0);
+            Map<String, Object> updates = new HashMap<>();
+            stringUpdates.forEach((k, v) -> updates.put(k, v));
+            when(expenseService.patchExpense(eq(expenseId), eq(updates), eq(currentUserId)))
+                    .thenReturn(sampleExpense.toBuilder()
+                            .description((String) updates.get("description"))
+                            .build());
+
+            result = mockMvc.perform(patch(url)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(updates)))
+                    .andReturn();
+        }
     }
 
     @Then("the HTTP status should be {int}")
@@ -280,7 +367,7 @@ public class ExpenseControllerSteps {
     @Then("the JSON object should have {string} equal to {string}")
     public void the_json_object_should_have_field_equal(String field, String expected) throws Exception {
         String actual = objectMapper.readTree(result.getResponse().getContentAsString())
-                                     .get(field).asText();
+                .get(field).asText();
         assertEquals(expected, actual);
     }
 
@@ -288,5 +375,100 @@ public class ExpenseControllerSteps {
     public void the_trip_should_be_removed() {
         assertEquals(200, result.getResponse().getStatus());
         verify(tripService).delete(tripId);
+    }
+
+    // PARTICIPANT STEP DEFINITIONS
+    @Given("a current user is authenticated as an organizer")
+    public void a_current_user_is_authenticated_as_an_organizer() {
+        currentUserId = organizerId;
+        when(authService.getCurrentUserId()).thenReturn(organizerId);
+
+        // Mock permission service methods for organizer
+        when(tripPermissionService.canInviteParticipants(tripId, organizerId)).thenReturn(true);
+        when(tripPermissionService.hasRoleOrHigher(tripId, organizerId, ParticipantRole.ORGANIZER)).thenReturn(true);
+        when(tripPermissionService.canManageParticipant(eq(tripId), eq(organizerId), any())).thenReturn(true);
+        when(tripPermissionService.isAcceptedParticipant(tripId, organizerId)).thenReturn(true);
+
+        organizerParticipant = ParticipantDTO.builder()
+                .id(UUID.randomUUID())
+                .tripId(tripId)
+                .userId(organizerId)
+                .email("organizer@example.com")
+                .firstName("John")
+                .lastName("Organizer")
+                .role(ParticipantRole.ORGANIZER)
+                .status(InvitationStatus.ACCEPTED)
+                .createdAt(LocalDateTime.now().minusDays(1))
+                .joinedAt(LocalDateTime.now().minusDays(1))
+                .build();
+
+        when(participantService.getParticipantsByTrip(tripId))
+                .thenReturn(List.of(organizerParticipant));
+    }
+
+    @Given("a sample trip exists with participants")
+    public void a_sample_trip_exists_with_participants() {
+        pendingParticipant = ParticipantDTO.builder()
+                .id(participantId)
+                .tripId(tripId)
+                .userId(newUserId)
+                .email("newuser@example.com")
+                .firstName("Jane")
+                .lastName("Member")
+                .role(ParticipantRole.MEMBER)
+                .status(InvitationStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(participantService.getParticipantsByTrip(tripId))
+                .thenReturn(List.of(organizerParticipant, pendingParticipant));
+    }
+
+    @Given("the following participant invitation payload:")
+    public void the_following_participant_invitation_payload(DataTable table) {
+        Map<String, String> map = table.asMaps().get(0);
+        participantRequestDto = new ParticipantDTO();
+        participantRequestDto.setEmail(map.get("email"));
+        participantRequestDto.setRole(ParticipantRole.valueOf(map.get("role")));
+        participantRequestDto.setTripId(tripId);
+
+        // Mock user service for email lookup
+        when(userService.findUserIdByEmail("newuser@example.com")).thenReturn(newUserId);
+        when(userService.findEmailByUserId(newUserId)).thenReturn("newuser@example.com");
+        when(userService.isRegisteredUser("newuser@example.com")).thenReturn(true);
+    }
+
+    @Given("I have a pending invitation as participant")
+    public void i_have_a_pending_invitation_as_participant() {
+        currentUserId = newUserId;
+        when(authService.getCurrentUserId()).thenReturn(currentUserId);
+
+        // Create pendingParticipant if it doesn't exist
+        if (pendingParticipant == null) {
+            pendingParticipant = ParticipantDTO.builder()
+                    .id(participantId)
+                    .tripId(tripId)
+                    .userId(newUserId)
+                    .email("newuser@example.com")
+                    .firstName("Jane")
+                    .lastName("Member")
+                    .role(ParticipantRole.MEMBER)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+        }
+    }
+
+    @Then("the JSON array should contain a participant with email {string}")
+    public void the_json_array_should_contain_a_participant_with_email(String expectedEmail) throws Exception {
+        String json = result.getResponse().getContentAsString();
+        List<ParticipantDTO> list = objectMapper.readValue(json, new TypeReference<>() {});
+        assertTrue(list.stream().anyMatch(p -> expectedEmail.equals(p.getEmail())));
+    }
+
+    @Then("the JSON object should have a field {string} that is not null")
+    public void the_json_object_should_have_field_that_is_not_null(String field) throws Exception {
+        assertFalse(objectMapper.readTree(result.getResponse().getContentAsString())
+                .get(field).isNull());
     }
 }
